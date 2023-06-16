@@ -12,33 +12,34 @@ workflow INPUT_CHECK {
     SAMPLESHEET_CHECK ( samplesheet )
         .csv
         .splitCsv ( header:true, sep:',' )
-        .map { create_fastq_channel(it) }
-        .set { reads }
+        .set { manifest }
 
     emit:
-    reads                                     // channel: [ val(meta), [ reads ] ]
+    manifest                                     // channel: [ val(meta), val(taxa), file(assembly), file(fastq_1), file(fastq_2) ]
     versions = SAMPLESHEET_CHECK.out.versions // channel: [ versions.yml ]
 }
 
-// Function to get list of [ meta, [ fastq_1, fastq_2 ] ]
-def create_fastq_channel(LinkedHashMap row) {
+// Function to get list of [ meta, [ taxa, assembly, fastq_1, fastq_2] ]
+def create_sample_channel(LinkedHashMap row) {
     // create meta map
     def meta = [:]
     meta.id         = row.sample
     meta.single_end = row.single_end.toBoolean()
 
-    // add path(s) of the fastq file(s) to the meta map
-    def fastq_meta = []
+    // check that files exist
+    if (!file(row.assembly).exists()) {
+        exit 1, "ERROR: Please check input samplesheet -> Assembly file does not exist!\n${row.assembly}"
+    }
     if (!file(row.fastq_1).exists()) {
         exit 1, "ERROR: Please check input samplesheet -> Read 1 FastQ file does not exist!\n${row.fastq_1}"
     }
-    if (meta.single_end) {
-        fastq_meta = [ meta, [ file(row.fastq_1) ] ]
-    } else {
-        if (!file(row.fastq_2).exists()) {
-            exit 1, "ERROR: Please check input samplesheet -> Read 2 FastQ file does not exist!\n${row.fastq_2}"
-        }
-        fastq_meta = [ meta, [ file(row.fastq_1), file(row.fastq_2) ] ]
+    if (!file(row.fastq_2).exists()) {
+        exit 1, "ERROR: Please check input samplesheet -> Read 2 FastQ file does not exist!\n${row.fastq_2}"
     }
-    return fastq_meta
+
+    // add path(s) of the fastq file(s) to the meta map
+    def sample_meta = []
+    sample_meta = [ meta, [ row.taxa, file(row.assembly), file(row.fastq_1), file(row.fastq_2) ] ]
+    
+    return sample_meta
 }
