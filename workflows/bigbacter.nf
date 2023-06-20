@@ -39,6 +39,7 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 //
 include { INPUT_CHECK } from '../subworkflows/local/input_check'
 include { ASSIGN_CLUSTER } from '../subworkflows/local/assign_cluster'
+//include { CALL_VARIANTS } from '../subworkflows/local/variant_calling'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -86,9 +87,22 @@ workflow BIGBACTER {
         manifest, params.db
     )
 
-    // 
+    // Reformat channels and combine cluster info with the input manifest
+    ASSIGN_CLUSTER
+        .out
+        .all_cluster_results
+        .map { [it.sample, it.cluster, it.reference] }
+        .set { all_cluster_results }
 
+    manifest
+        .map { [it.sample, it.taxa, it.assembly, it.fastq_1, it.fastq_2] }
+        .join(all_cluster_results)
+        .set { manifest_updated }
 
+    // SUBWORKFLOW: Call variants
+    //CALL_VARIANTS(
+    //    ASSIGN_CLUSTER.out.all_cluster_results
+    //)
 
 
 

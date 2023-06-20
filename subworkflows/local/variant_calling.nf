@@ -1,15 +1,12 @@
 //
-// Assign PopPUNK clusters for each isolate
+// Call variants per cluster
 //
 
-include { GET_PP_DB } from '../../modules/local/get_pp_db'
-include { ASSIGN_PP_CLUSTER } from '../../modules/local/assign_pp_cluster'
-include { PUSH_PP_DBS } from '../../modules/local/push_new_pp'
-include { PUSH_PP_REFS } from '../../modules/local/push_new_pp'
+include { RUN_SNIPPY } from '../../modules/local/run_snippy'
 
-workflow ASSIGN_CLUSTER {
+workflow CALL_VARIANTS {
     take:
-    manifest // channel: [ val(sample), val(taxa), file(assembly), file(fastq_1), file(fastq_2) ]
+    cluster_results // channel: [ val(sample), val(cluster), file(assembly), file(fastq_1), file(file2 ]
     db_path //  val: path/to/db
 
     main:
@@ -49,12 +46,12 @@ workflow ASSIGN_CLUSTER {
     // Assign clusters using the selected database
     ASSIGN_PP_CLUSTER(pp_grouped, nextflow.timestamp.replaceAll(" ", "_").replaceAll(":", "."))
 
-    // Combine cluster results into single channel
+    // Combine cluster results into single tuple
     ASSIGN_PP_CLUSTER
         .out
         .cluster_results
         .splitCsv(header: true)
-        .set {all_cluster_results}
+        .view { it }
 
     // Push new database and references
     PUSH_PP_DBS(ASSIGN_PP_CLUSTER.out.new_pp_db, db_path)
@@ -62,6 +59,5 @@ workflow ASSIGN_CLUSTER {
     
 
     emit:
-    all_cluster_results = all_cluster_results // channel: [ val(sample), val(cluster), val(reference) ]
     versions = GET_PP_DB.out.versions // channel: [ versions.yml ]
 }
