@@ -7,7 +7,8 @@ process ASSIGN_PP_CLUSTER {
 
     output:
     path 'pp_results.csv', emit: cluster_results
-    tuple path(new_db), path('CACHE'), val(taxa_name), path('new_refs/*.fa'), emit: new_pp_db
+    tuple path(new_db), path('CACHE'), val(taxa_name), emit: new_pp_db
+    path 'cluster_status.csv', emit: cluster_status
 
     when:
     task.ext.when == null || task.ext.when
@@ -35,49 +36,29 @@ process ASSIGN_PP_CLUSTER {
        --max-zero-dist 1 \
        --max-merge 0
 
-    #### DETECT NEW CLUSTERS ####
-    # make directory and add empty file
-    mkdir new_refs
-    touch new_refs/placeholder.tmp.fa
-    # copy over BigBacter reference list to new database
-    cp !{db}/*_bb_refs.tsv !{new_db}/!{new_db}_bb_refs.tsv
-    # searching for new clusters
-    cat !{db}/!{db}_clusters.csv | tr ',' '\t' | cut -f 2 | sort | uniq > old.txt
-    cat !{new_db}/!{new_db}_clusters.csv | tr ',' '\t' | cut -f 2 | sort | uniq > new.txt
-    new_clusters=$(comm -13 old.txt new.txt)
-    # check if new clusters were detected
-    if [[ -n "${new_clusters}" ]]
-    then
-        for c in ${new_clusters}
-        do
-            # update the BigBacter reference list
-            cat !{new_db}/!{new_db}_clusters.csv | tr ',' '\t' | awk -v c=${c} '$2 == c {print $0}' | head -n 1 >> !{new_db}/!{new_db}_bb_refs.tsv
-            s=$(cat !{new_db}/!{new_db}_bb_refs.tsv | cut -f 1 | tail -n 1)
-            # rename the input assembly and queue for pushing to databse
-            a=$(cat qfile.txt | awk -v s=${s} '$1 == s {print $2}')
-            cp ${a} new_refs/${s}.fa
-            
-        done
-    fi
-
-    #### COLLECTING CLUSTER & REFERENCE INFO ####
+    #### COLLECTING CLUSTER INFO ####
     # get cluster info for each sample
     samp=$(cat qfile.txt | cut -f 1)
+    echo "sample,cluster,taxa_cluster" > pp_results.csv
     for s in ${samp}
     do
-        cat !{new_db}/!{new_db}_clusters.csv | tr ',' '\t' | awk -v s=${s} '$1 == s {print $0}' >> SAMP_CLUSTERS
+        cat !{new_db}/!{new_db}_clusters.csv | tr ',' '\t' | awk -v s=${s} -v t=!{taxa_name} '$1 == s {print $1,$2,t"_"$2}' | tr ' ' ',' >> pp_results.csv
     done
-    # get reference info for each sample
-    row=$(cat SAMP_CLUSTERS | tr '\t' ',')
-    for r in ${row}
+
+    # define status for each cluster
+    echo "taxa_cluster,status" > cluster_status.csv
+    clusts=$(cat pp_results.csv | tr ',' '\t' | cut -f 2 | grep -v "cluster" | sort | uniq)
+    for c in ${clusts}
     do
-        s=$(echo ${r} | tr ',' '\t' | cut -f 1)
-        c=$(echo ${r} | tr ',' '\t' | cut -f 2)
-        cat !{new_db}/!{new_db}_bb_refs.tsv | awk -v s=${c} '$2 == s {print $1}' >> SAMP_REFS
+        status=$(cat !{db}/!{db}_clusters.csv | tr ',' '\t' | awk -v c=${c} '$2 == c {print "new"}' | head -n 1)
+        if [[ "${status}" == "new" ]]
+        then
+            echo "!{taxa_name}_${c},old" >> cluster_status.csv
+        else
+            echo "!{taxa_name}_${c},new" >> cluster_status.csv
+        fi
     done
-    # combine all together
-    echo "sample,cluster,reference" > pp_results.csv
-    paste SAMP_CLUSTERS SAMP_REFS | tr '\t' ',' >> pp_results.csv
+    
 
     #### VERSION INFO ####
     echo "hello" > versions.yml

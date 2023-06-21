@@ -2,62 +2,37 @@
 // Call variants per cluster
 //
 
-include { RUN_SNIPPY } from '../../modules/local/run_snippy'
+include { CALL_VARIANTS_NEW } from '../../modules/local/call-variants'
+include { CALL_VARIANTS_OLD } from '../../modules/local/call-variants'
 
 workflow CALL_VARIANTS {
     take:
-    cluster_results // channel: [ val(sample), val(cluster), file(assembly), file(fastq_1), file(file2 ]
+    manifest // channel: [ val(taxa_cluster), val(sample), val(taxa), path(assembly), path(fastq_1), path(fastq_2), val(cluster), val(status) ]
     db_path //  val: path/to/db
 
     main:
-    // build input for GET_PP_DB
+    // Split samples into new and old
+    // New clusters
     manifest
-        .map { it.sample }
-        .set { sample }
-
+        .filter { taxa_cluster, samples, taxas, assemblies, fastq_1s, fastq_2s, clusters, status -> status == "new" }
+        .set { new_clusters }
+    // Old clusters
     manifest
-        .map { it.assembly }
-        .set { assembly }
+        .filter { taxa_cluster, samples, taxas, assemblies, fastq_1s, fastq_2s, clusters, status -> status == "old" }
+        .map { taxa_cluster, samples, taxas, assemblies, fastq_1s, fastq_2s, clusters, status -> [taxa_cluster, samples, taxas, assemblies, fastq_1s, fastq_2s, clusters, status, db_path+taxas.get(0)+"/clusters/"+clusters.get(0)] }
+        .set { old_clusters }
 
-    manifest
-        .map { it.taxa }
-        .set { taxa }
+    CALL_VARIANTS_NEW(new_clusters)
+    CALL_VARIANTS_OLD(old_clusters)
 
-    manifest
-        .map { db_path+it.taxa+"/pp_db/" }
-        .set { db_source }
-
-    manifest
-        .map { db_path+it.taxa+"/pp_db/CACHE" }
-        .merge(sample)
-        .merge(taxa)
-        .merge(assembly)
-        .merge(db_source)
-        .set { pp_manifest }   
-
-    // Get the most current PopPUNK database for each species based on the cache in the BigBacter database
-    GET_PP_DB(pp_manifest)
-    GET_PP_DB
+    CALL_VARIANTS_NEW
         .out
-        .pp_list
-        .groupTuple()
-        .set { pp_grouped }
+        .snippy_results
+        .concat(CALL_VARIANTS_OLD.out.snippy_results)
+        .set {new_bb_db}
 
-    // Assign clusters using the selected database
-    ASSIGN_PP_CLUSTER(pp_grouped, nextflow.timestamp.replaceAll(" ", "_").replaceAll(":", "."))
-
-    // Combine cluster results into single tuple
-    ASSIGN_PP_CLUSTER
-        .out
-        .cluster_results
-        .splitCsv(header: true)
-        .view { it }
-
-    // Push new database and references
-    PUSH_PP_DBS(ASSIGN_PP_CLUSTER.out.new_pp_db, db_path)
-    PUSH_PP_REFS(ASSIGN_PP_CLUSTER.out.new_pp_db, db_path)
-    
+    new_bb_db.view { it }
 
     emit:
-    versions = GET_PP_DB.out.versions // channel: [ versions.yml ]
+    new_bb_db = new_bb_db
 }

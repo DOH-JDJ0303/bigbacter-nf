@@ -39,7 +39,8 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 //
 include { INPUT_CHECK } from '../subworkflows/local/input_check'
 include { ASSIGN_CLUSTER } from '../subworkflows/local/assign_cluster'
-//include { CALL_VARIANTS } from '../subworkflows/local/variant_calling'
+include { CALL_VARIANTS } from '../subworkflows/local/variant_calling'
+include { PUSH_FILES } from '../subworkflows/local/push_samples'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -84,28 +85,22 @@ workflow BIGBACTER {
 
     // SUBWORKFLOW: Assign PopPUNK clusters
     ASSIGN_CLUSTER(
-        manifest, params.db
+        manifest, 
+        params.db
     )
 
-    // Reformat channels and combine cluster info with the input manifest
-    ASSIGN_CLUSTER
-        .out
-        .all_cluster_results
-        .map { [it.sample, it.cluster, it.reference] }
-        .set { all_cluster_results }
-
-    manifest
-        .map { [it.sample, it.taxa, it.assembly, it.fastq_1, it.fastq_2] }
-        .join(all_cluster_results)
-        .set { manifest_updated }
-
     // SUBWORKFLOW: Call variants
-    //CALL_VARIANTS(
-    //    ASSIGN_CLUSTER.out.all_cluster_results
-    //)
+    CALL_VARIANTS(
+        ASSIGN_CLUSTER.out.manifest_grouped,
+        params.db
+    )
 
-
-
+   // SUBWORFLOW: Push files to databases
+   PUSH_FILES(
+        ASSIGN_CLUSTER.out.new_pp_db,
+        CALL_VARIANTS.out.new_bb_db,
+        params.db
+   )
 
 
 
