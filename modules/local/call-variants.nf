@@ -89,7 +89,7 @@ process CALL_VARIANTS_OLD {
     
     if [[ $n > 0 ]]
     then
-        snippy-core --ref ../!{cluster_dir}/ref/ref.fa ../!{cluster_dir}/snippy/* ../snippy_new/* || true
+       snippy-core --ref ../!{cluster_dir}/ref/ref.fa ../!{cluster_dir}/snippy/* ../snippy_new/* || true
     else
        snippy-core --ref ../!{cluster_dir}/ref/ref.fa ../snippy_new/* || true
     fi

@@ -33,7 +33,8 @@ process PUSH_BB_DB_NEW {
     shell:
     cluster_dir = bb_db.name
     """
-    mv !{snippy_new}/*/ !{bb_db}/snippy/ || true
+    cd !{snippy_new}/
+    mv * ../!{bb_db}/snippy/
     """
 }
 
@@ -45,12 +46,14 @@ process PUSH_BB_DB_OLD {
     val db_path
 
     output:
-    path 'snippy_new/*'
+    path '*/'
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
     """
+    mv !{snippy_new}/* ./
+    rm -r !{snippy_new}
     """
 }
