@@ -22,7 +22,7 @@ workflow PUSH_FILES {
         .set { new_clusters }
     // Old clusters
     bb_files
-        .filter { cluster, taxa, bb_db, snippy_new, core, status -> status == "new" }
+        .filter { cluster, taxa, bb_db, snippy_new, core, status -> status == "old" }
         .set { old_clusters }
     
     PUSH_BB_DB_NEW(new_clusters, db_path)

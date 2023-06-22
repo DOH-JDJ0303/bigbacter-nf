@@ -25,16 +25,15 @@ process PUSH_BB_DB_NEW {
     val db_path
 
     output:
-    path '${cluster_dir}/'
+    path bb_db, includeInputs: true
 
     when:
     task.ext.when == null || task.ext.when
 
     shell:
-    cluster_dir = bb_db.name
     """
-    cd !{snippy_new}/
-    mv * ../!{bb_db}/snippy/
+    
+    mv !{snippy_new} !{bb_db}/snippy/
     """
 }
 
@@ -46,14 +45,12 @@ process PUSH_BB_DB_OLD {
     val db_path
 
     output:
-    path '*/'
+    path '*.tar.gz', includeInputs: true
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
     """
-    mv !{snippy_new}/* ./
-    rm -r !{snippy_new}
     """
 }
