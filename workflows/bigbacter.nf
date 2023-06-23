@@ -40,6 +40,7 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 include { INPUT_CHECK } from '../subworkflows/local/input_check'
 include { ASSIGN_CLUSTER } from '../subworkflows/local/assign_cluster'
 include { CALL_VARIANTS } from '../subworkflows/local/variant_calling'
+include { MASH_SKETCH } from '../subworkflows/local/mash_sketch'
 include { PUSH_FILES } from '../subworkflows/local/push_samples'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -50,6 +51,7 @@ include { PUSH_FILES } from '../subworkflows/local/push_samples'
 //
 // MODULE: Installed directly from nf-core/modules
 //
+include { TIMESTAMP } from '../modules/local/get-timestamp'
 include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
@@ -75,7 +77,11 @@ workflow BIGBACTER {
     //ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
 
 
-
+    // Get timestamp - used to name cache and some new files
+    TIMESTAMP()
+    TIMESTAMP
+        .out
+        .set { timestamp }
 
     // load manifest file
     Channel
@@ -85,21 +91,40 @@ workflow BIGBACTER {
 
     // SUBWORKFLOW: Assign PopPUNK clusters
     ASSIGN_CLUSTER(
-        manifest, 
-        params.db
+        manifest,
+        timestamp
     )
 
     // SUBWORKFLOW: Call variants
     CALL_VARIANTS(
-        ASSIGN_CLUSTER.out.manifest_grouped,
-        params.db
+        ASSIGN_CLUSTER.out.manifest_grouped
     )
+
+    // SUBWORKFLOW: Mash comparisons
+    MASH_SKETCH(
+        ASSIGN_CLUSTER.out.manifest_grouped,
+        timestamp
+    )
+
+   // Combine outputs to be push
+   MASH_SKETCH
+       .out
+       .mash_cluster
+       .map { [it.get(0), it.get(1), it.get(2), it.get(3)] }
+       .set { mash_cluster }
+
+   CALL_VARIANTS
+        .out
+        .new_bb_db
+        .map { [it.get(0), it.get(1), it.get(2), it.get(3), it.get(4), it.get(5), it.get(6)] }
+        .join(mash_cluster)
+        .set { push_list }
 
    // SUBWORFLOW: Push files to databases
    PUSH_FILES(
         ASSIGN_CLUSTER.out.new_pp_db,
-        CALL_VARIANTS.out.new_bb_db,
-        params.db
+        push_list,
+        MASH_SKETCH.out.mash_all
    )
 
 

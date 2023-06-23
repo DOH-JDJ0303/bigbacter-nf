@@ -5,7 +5,7 @@ process CALL_VARIANTS_NEW {
     tuple val(taxa_cluster), val(samples), val(taxa), path(assemblies), path(fastq_1), path(fastq_2), val(cluster), val(status)
 
     output:
-    tuple val(cluster_name), val(taxa_name), path(cluster_name), path("*.tar.gz"), path("core/core.*"), val(status), emit: snippy_results
+    tuple val(taxa_cluster), val(cluster_name), val(taxa_name), path(cluster_name), path("*.tar.gz"), path("core/core.*"), val(status), emit: snippy_results
 
     when:
     task.ext.when == null || task.ext.when
@@ -31,18 +31,18 @@ process CALL_VARIANTS_NEW {
 
     # select a reference genome
     ref=$(cat manifest.tsv | head -n 1 | cut -f 2)
-    cp ${ref} !{cluster_name}/ref/ref.fa
+    cp ${ref} !{cluster_name}/ref/!{taxa_name}-!{cluster_name}-ref.fa
 
     # run Snippy on each sample individually
     mkdir snippy_new
     echo '#!/bin/bash' > snippy_script.sh
-    cat manifest.tsv | awk '{print "snippy --cleanup --cpus 8 --reference !{cluster_name}/ref/ref.fa --R1 "$3" --R2 "$4" --outdir snippy_new/"$1 }' >> snippy_script.sh
+    cat manifest.tsv | awk '{print "snippy --cleanup --cpus 8 --reference !{cluster_name}/ref/*.fa --R1 "$3" --R2 "$4" --outdir snippy_new/"$1 }' >> snippy_script.sh
     bash snippy_script.sh
    
     # run snippy-core
     mkdir core
     cd core
-    snippy-core --ref ../!{cluster_name}/ref/ref.fa ../snippy_new/* || true
+    snippy-core --ref ../!{cluster_name}/ref/*.fa ../snippy_new/* || true
     cd ../
 
     # compress outputs
@@ -63,7 +63,7 @@ process CALL_VARIANTS_OLD {
     tuple val(taxa_cluster), val(samples), val(taxa), path(assemblies), path(fastq_1), path(fastq_2), val(cluster), val(status), path(cluster_dir)
 
     output:
-    tuple val(cluster_name), val(taxa_name), path(cluster_name), path('*.tar.gz'), path("core/core.*"), val(status), emit: snippy_results
+    tuple val(taxa_cluster), val(cluster_name), val(taxa_name), path(cluster_name), path('*.tar.gz'), path("core/core.*"), val(status), emit: snippy_results
 
     when:
     task.ext.when == null || task.ext.when
@@ -86,7 +86,7 @@ process CALL_VARIANTS_OLD {
     # run Snippy on each sample individually
     mkdir snippy_new
     echo '#!/bin/bash' > snippy_script.sh
-    cat manifest.tsv | awk '{print "snippy --cleanup --cpus 8 --reference !{cluster_dir}/ref/ref.fa --R1 "$3" --R2 "$4" --outdir snippy_new/"$1 }' >> snippy_script.sh
+    cat manifest.tsv | awk '{print "snippy --cleanup --cpus 8 --reference !{cluster_dir}/ref/*.fa --R1 "$3" --R2 "$4" --outdir snippy_new/"$1 }' >> snippy_script.sh
     bash snippy_script.sh
 
     # run snippy-core
@@ -104,10 +104,10 @@ process CALL_VARIANTS_OLD {
         done
 
        cd core
-       snippy-core --ref ../!{cluster_dir}/ref/ref.fa ../snippy_old/* ../snippy_new/* || true
+       snippy-core --ref ../!{cluster_dir}/ref/*.fa ../snippy_old/* ../snippy_new/* || true
     else
        cd core
-       snippy-core --ref ../!{cluster_dir}/ref/ref.fa ../snippy_new/* || true
+       snippy-core --ref ../!{cluster_dir}/ref/*.fa ../snippy_new/* || true
     fi
     cd ../
 

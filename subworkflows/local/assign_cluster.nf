@@ -2,18 +2,18 @@
 // Assign PopPUNK clusters for each isolate
 //
 
-include { GET_PP_DB } from '../../modules/local/get_pp_db'
-include { ASSIGN_PP_CLUSTER } from '../../modules/local/assign_pp_cluster'
+include { GET_PP_DB } from '../../modules/local/get-cache-files'
+include { ASSIGN_PP_CLUSTER } from '../../modules/local/assign-pp-cluster'
 
 workflow ASSIGN_CLUSTER {
     take:
     manifest // channel: [ val(sample), val(taxa), file(assembly), file(fastq_1), file(fastq_2) ]
-    db_path //  val: path/to/db
+    timestamp // channel: val(timestamp)
 
     main:
     // build input for GET_PP_DB
     manifest
-        .map { tuple(db_path+it.taxa+"/pp_db/CACHE", it.sample, it.taxa, it.assembly, db_path+it.taxa+"/pp_db/") }
+        .map { tuple(params.db+it.taxa+"/pp_db/CACHE", it.sample, it.taxa, it.assembly) }
         .set { pp_manifest }  
 
     // Get the most current PopPUNK database for each species based on the cache in the BigBacter database
@@ -25,7 +25,7 @@ workflow ASSIGN_CLUSTER {
         .set { pp_grouped }
 
     // Assign clusters using the selected database
-    ASSIGN_PP_CLUSTER(pp_grouped, nextflow.timestamp.replaceAll(" ", "_").replaceAll(":", "."))
+    ASSIGN_PP_CLUSTER(pp_grouped, timestamp)
 
     // Combine cluster results, new reference status, and the original manifest into single channel
      ASSIGN_PP_CLUSTER
