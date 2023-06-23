@@ -18,6 +18,7 @@ process ASSIGN_PP_CLUSTER {
     taxa_name = taxa[0]
     '''
     #### SETTING UP FOR POPPUNK ####
+    echo !{samples} > TEMP
     # create qfile for PopPUNK
     echo !{samples} | tr -d '[] ' | tr ',' '\n' > s_col
     echo !{assembly_names} | tr -d '[] ' | tr ',' '\n' > a_col

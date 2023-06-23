@@ -5,7 +5,7 @@ process MASH_DIST_CLUSTER_NEW {
     tuple val(taxa_cluster), val(sample), val(taxa), path(assembly), val(cluster), val(status), val(mash_sketch)
 
     output:
-    tuple val(taxa_cluster), path('0.msh'), path('CACHE'), path('mash-ava-cluster.tsv'), emit: mash_results
+    tuple val(taxa_cluster), path('00.msh'), path('CACHE'), path('mash-ava-cluster.tsv'), emit: mash_results
 
     when:
     task.ext.when == null || task.ext.when
@@ -13,10 +13,10 @@ process MASH_DIST_CLUSTER_NEW {
     shell:
     '''
     # create sketch and cache for all assemblies
-    mash sketch -o 0 !{assembly}
-    echo '0' > CACHE
+    mash sketch -o 00 !{assembly}
+    echo '00' > CACHE
     # perform all-vs-all mash comparion
-    mash dist 0.msh 0.msh > mash-ava-cluster.tsv
+    mash dist 00.msh 00.msh > mash-ava-cluster.tsv
     '''
 }
 

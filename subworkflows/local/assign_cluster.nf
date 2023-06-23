@@ -50,7 +50,7 @@ workflow ASSIGN_CLUSTER {
         .groupTuple(by: 6)
         .map { tuple(it.get(6), it.get(0), it.get(1), it.get(2), it.get(3), it.get(4), it.get(5))}
         .join(cluster_status)
-        .set { manifest_grouped }    
+        .set { manifest_grouped }
 
     emit:
     manifest_grouped = manifest_grouped // channel: [ val(taxa_cluster), val(sample), val(taxa), path(assembly), path(fastq_1), path(fastq_2), val(cluster) ]
