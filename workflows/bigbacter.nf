@@ -121,11 +121,13 @@ workflow BIGBACTER {
         .set { push_list }
 
    // SUBWORFLOW: Push files to databases
-   PUSH_FILES(
-        ASSIGN_CLUSTER.out.new_pp_db,
-        push_list,
-        MASH_SKETCH.out.mash_all
-   )
+   if(params.push){
+       PUSH_FILES(
+            ASSIGN_CLUSTER.out.new_pp_db,
+            push_list,
+            MASH_SKETCH.out.mash_all
+       )
+    }
 
 
 

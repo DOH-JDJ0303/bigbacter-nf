@@ -45,6 +45,31 @@ process CALL_VARIANTS_NEW {
     snippy-core --ref ../!{cluster_name}/ref/*.fa ../snippy_new/* || true
     cd ../
 
+    # gather core stats and re-run snippy-core is any samples failed QC
+    ## gather stats
+    echo -e "$(cat core/core.txt | head -n 1)\tPER_GENFRAC\tPER_LOWCOV\tPER_HET\tQUAL" > core.stats
+    cat core/core.txt | tail -n +2 | awk '{genfrac = 100*($3-$8)/($2-$7); plow = 100*$8/($2-$7); phet = 100*$6/($2-$7); print $0, genfrac, plow, phet}' | awk '-v g="!{params.min_genfrac}" -v h="!{params.max_het}" -v l="!{params.max_lowcov}" {if($9 < g || $10 > l || $11 > h) print $0, "FAIL"; else print $0, "PASS"}' | tr ' ' '\t' >> core.stats
+    ## count number of samples that passed and failed QC
+    n_fail=$(cat core.stats | awk '$12 == "FAIL" {print $0}' | wc -l)
+    n_pass=$(cat core.stats | awk '$12 == "PASS" {print $0}' | wc -l)
+    if [[ ${n_fail} > 0 ]]
+    then
+        ## remove current core SNP results
+        rm core/core*
+        ## check if all samples failed QC
+        if [[ ${n_pass} > 0 ]]
+        then
+            pass=$(cat core.stats | awk '$12 == "PASS" && $1 != "Reference" {print "../snippy_new/"$1}')
+            cd core/
+            snippy-core --ref ../!{cluster_name}/ref/*.fa ${pass} || true
+            cd ../
+        else
+            echo "All samples failed QC" > core/core.fail
+        fi
+    fi
+    ## include core.stats in output
+    mv core.stats core/
+    
     # compress outputs
     dirs=$(ls -d snippy_new/*/)
     for d in ${dirs}
@@ -110,6 +135,30 @@ process CALL_VARIANTS_OLD {
        snippy-core --ref ../!{cluster_dir}/ref/*.fa ../snippy_new/* || true
     fi
     cd ../
+
+    # gather core stats and re-run snippy-core is any samples failed QC
+    ## gather stats
+    echo -e "$(cat core/core.txt | head -n 1)\tPER_GENFRAC\tPER_LOWCOV\tPER_HET\tQUAL" > core.stats
+    cat core/core.txt | tail -n +2 | awk '{genfrac = 100*($3-$8)/($2-$7); plow = 100*$8/($2-$7); phet = 100*$6/($2-$7); print $0, genfrac, plow, phet}' | awk '-v g="!{params.min_genfrac}" -v h="!{params.max_het}" -v l="!{params.max_lowcov}" {if($9 < g || $10 > l || $11 > h) print $0, "FAIL"; else print $0, "PASS"}' | tr ' ' '\t' >> core.stats
+    n_fail=$(cat core.stats | awk '$12 == "FAIL" {print $0}' | wc -l)
+    n_pass=$(cat core.stats | awk '$12 == "PASS" {print $0}' | wc -l)
+    if [[ ${n_fail} > 0 ]]
+    then
+        ## remove current core SNP results
+        rm core/core*
+        ## check if all samples failed QC
+        if [[ ${n_pass} > 0 ]]
+        then
+            pass=$(cat core.stats | awk '$12 == "PASS" && $1 != "Reference" {print "../snippy_*/"$1}')
+            cd core/
+            snippy-core --ref ../!{cluster_name}/ref/*.fa ${pass} || true
+            cd ../
+        else
+            echo "All samples failed QC" > core/core.fail
+        fi
+    fi
+    ## include core.stats in output
+    mv core.stats core/
 
     # compress outputs
     dirs=$(ls -d snippy_new/*/)

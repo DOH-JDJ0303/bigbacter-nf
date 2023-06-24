@@ -43,7 +43,7 @@ process ASSIGN_PP_CLUSTER {
     echo "sample,cluster,taxa_cluster" > pp_results.csv
     for s in ${samp}
     do
-        cat !{new_db}/!{new_db}_clusters.csv | tr ',' '\t' | awk -v s=${s} -v t=!{taxa_name} '$1 == s {print $1,$2,t"_"$2}' | tr ' ' ',' >> pp_results.csv
+        cat !{new_db}/!{new_db}_clusters.csv | tr ',' '\t' | awk '{printf($1 "\t%05d,", $2)}' | tr ',' '\n' | awk -v s=${s} -v t=!{taxa_name} '$1 == s {print $1,$2,t"_"$2}' | tr ' ' ',' >> pp_results.csv
     done
 
     # define status for each cluster
