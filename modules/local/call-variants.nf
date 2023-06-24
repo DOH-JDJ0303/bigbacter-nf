@@ -48,7 +48,7 @@ process CALL_VARIANTS_NEW {
     # gather core stats and re-run snippy-core is any samples failed QC
     ## gather stats
     echo -e "$(cat core/core.txt | head -n 1)\tPER_GENFRAC\tPER_LOWCOV\tPER_HET\tQUAL" > core.stats
-    cat core/core.txt | tail -n +2 | awk '{genfrac = 100*($3-$8)/($2-$7); plow = 100*$8/($2-$7); phet = 100*$6/($2-$7); print $0, genfrac, plow, phet}' | awk '-v g="!{params.min_genfrac}" -v h="!{params.max_het}" -v l="!{params.max_lowcov}" {if($9 < g || $10 > l || $11 > h) print $0, "FAIL"; else print $0, "PASS"}' | tr ' ' '\t' >> core.stats
+    cat core/core.txt | tail -n +2 | awk '{genfrac = 100*($3-$8)/($2-$7); plow = 100*$8/($2-$7); phet = 100*$6/($2-$7); print $0, genfrac, plow, phet}' | awk -v g="!{params.min_genfrac}" -v h="!{params.max_het}" -v l="!{params.max_lowcov}" '{if($9 < g || $10 > l || $11 > h) print $0, "FAIL"; else print $0, "PASS"}' | tr ' ' '\t' >> core.stats
     ## count number of samples that passed and failed QC
     n_fail=$(cat core.stats | awk '$12 == "FAIL" {print $0}' | wc -l)
     n_pass=$(cat core.stats | awk '$12 == "PASS" {print $0}' | wc -l)
@@ -139,7 +139,7 @@ process CALL_VARIANTS_OLD {
     # gather core stats and re-run snippy-core is any samples failed QC
     ## gather stats
     echo -e "$(cat core/core.txt | head -n 1)\tPER_GENFRAC\tPER_LOWCOV\tPER_HET\tQUAL" > core.stats
-    cat core/core.txt | tail -n +2 | awk '{genfrac = 100*($3-$8)/($2-$7); plow = 100*$8/($2-$7); phet = 100*$6/($2-$7); print $0, genfrac, plow, phet}' | awk '-v g="!{params.min_genfrac}" -v h="!{params.max_het}" -v l="!{params.max_lowcov}" {if($9 < g || $10 > l || $11 > h) print $0, "FAIL"; else print $0, "PASS"}' | tr ' ' '\t' >> core.stats
+    cat core/core.txt | tail -n +2 | awk '{genfrac = 100*($3-$8)/($2-$7); plow = 100*$8/($2-$7); phet = 100*$6/($2-$7); print $0, genfrac, plow, phet}' | awk -v g="!{params.min_genfrac}" -v h="!{params.max_het}" -v l="!{params.max_lowcov}" '{if($9 < g || $10 > l || $11 > h) print $0, "FAIL"; else print $0, "PASS"}' | tr ' ' '\t' >> core.stats
     n_fail=$(cat core.stats | awk '$12 == "FAIL" {print $0}' | wc -l)
     n_pass=$(cat core.stats | awk '$12 == "PASS" {print $0}' | wc -l)
     if [[ ${n_fail} > 0 ]]
