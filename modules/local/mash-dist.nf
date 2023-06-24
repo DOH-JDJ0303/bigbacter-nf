@@ -11,12 +11,24 @@ process MASH_DIST_CLUSTER_NEW {
     task.ext.when == null || task.ext.when
 
     shell:
+    assembly_names = assembly.name
     '''
+    # rename assemblies for tree
+    echo !{sample} | tr -d '[] ' | tr ',' '\n' > s_col
+    echo !{assembly_names} | tr -d '[] ' | tr ',' '\n' > a_col        
+    paste -d "," s_col a_col > manifest.txt
+    for row in $(cat manifest.txt)
+    do
+        n=$(echo $row | tr ',' '\t' | cut -f 1)
+        a=$(echo $row | tr ',' '\t' | cut -f 2)
+
+        mv ${a} ${n}.fa
+    done
     # create sketch and cache for all assemblies
-    mash sketch -o 00 !{assembly}
-    echo '00' > CACHE
+    mash sketch -o 0000000000 *.fa
+    echo '0000000000' > CACHE
     # perform all-vs-all mash comparion
-    mash dist 00.msh 00.msh > mash-ava-cluster.tsv
+    mash dist 0000000000.msh 0000000000.msh > mash-ava-cluster.tsv
     '''
 }
 
@@ -34,9 +46,21 @@ process MASH_DIST_CLUSTER_OLD {
     task.ext.when == null || task.ext.when
 
     shell:
+    assembly_names = assembly.name
     '''
+    # rename assemblies for tree
+    echo !{sample} | tr -d '[] ' | tr ',' '\n' > s_col
+    echo !{assembly_names} | tr -d '[] ' | tr ',' '\n' > a_col
+    paste -d "," s_col a_col > manifest.txt
+    for row in $(cat manifest.txt)
+    do
+        n=$(echo $row | tr ',' '\t' | cut -f 1)
+        a=$(echo $row | tr ',' '\t' | cut -f 2)
+
+        mv ${a} ${n}.fa
+    done
     # create sketch for all assemblies
-    mash sketch -o new !{assembly}
+    mash sketch -o new *.fa
     # add new sketch to the existing sketch and create cache
     mash paste "!{new_sketch}" !{mash_sketch} new.msh
     echo "!{new_sketch}" > CACHE
@@ -49,7 +73,7 @@ process MASH_DIST_ALL {
     container 'staphb/mash:2.3'
 
     input:
-    tuple val(taxa), path(assembly), val(mash_sketch)
+    tuple val(sample), val(taxa), path(assembly), val(mash_sketch)
     val new_sketch
 
     output:
@@ -59,9 +83,21 @@ process MASH_DIST_ALL {
     task.ext.when == null || task.ext.when
 
     shell:
+    assembly_names = assembly.name
     '''
+    # rename assemblies for tree
+    echo !{sample} | tr -d '[] ' | tr ',' '\n' > s_col
+    echo !{assembly_names} | tr -d '[] ' | tr ',' '\n' > a_col
+    paste -d "," s_col a_col > manifest.txt
+    for row in $(cat manifest.txt)
+    do
+        n=$(echo $row | tr ',' '\t' | cut -f 1)
+        a=$(echo $row | tr ',' '\t' | cut -f 2)
+
+        mv ${a} ${n}.fa
+    done
     # create sketch for all assemblies
-    mash sketch -o new !{assembly}
+    mash sketch -o new *.fa
     # add new sketch to the existing sketch and create cache
     mash paste "!{new_sketch}" !{mash_sketch} new.msh
     echo "!{new_sketch}" > CACHE

@@ -45,10 +45,10 @@ process GET_MASH_SKETCH_CLUSTER {
 process GET_MASH_SKETCH_ALL {
 
     input:
-    tuple val(taxa), val(assembly), path(all_cache)
+    tuple val(sample), val(taxa), val(assembly), path(all_cache)
 
     output:
-    tuple val(taxa), val(assembly), stdout, emit: mash_all
+    tuple val(sample), val(taxa), val(assembly), stdout, emit: mash_all
     path "versions.yml", emit: versions
 
     when:

@@ -5,7 +5,7 @@ process CALL_VARIANTS_NEW {
     tuple val(taxa_cluster), val(samples), val(taxa), path(assemblies), path(fastq_1), path(fastq_2), val(cluster), val(status)
 
     output:
-    tuple val(taxa_cluster), val(cluster_name), val(taxa_name), path(cluster_name), path("*.tar.gz"), path("core/core.*"), val(status), emit: snippy_results
+    tuple val(taxa_cluster), val(cluster_name), val(taxa_name), path(cluster_name), path("snippy_new/*.tar.gz"), path("core/core.*"), val(status), emit: snippy_results
 
     when:
     task.ext.when == null || task.ext.when
@@ -71,12 +71,14 @@ process CALL_VARIANTS_NEW {
     mv core.stats core/
     
     # compress outputs
-    dirs=$(ls -d snippy_new/*/)
+    cd snippy_new
+    dirs=$(ls -d */)
     for d in ${dirs}
     do
         name=${d%/}
         tar -czvf ${name##*/}.tar.gz ${d}
     done
+    cd ../
     '''
 }
 
@@ -88,7 +90,7 @@ process CALL_VARIANTS_OLD {
     tuple val(taxa_cluster), val(samples), val(taxa), path(assemblies), path(fastq_1), path(fastq_2), val(cluster), val(status), path(cluster_dir)
 
     output:
-    tuple val(taxa_cluster), val(cluster_name), val(taxa_name), path(cluster_name), path('*.tar.gz'), path("core/core.*"), val(status), emit: snippy_results
+    tuple val(taxa_cluster), val(cluster_name), val(taxa_name), path(cluster_name), path('snippy_new/*.tar.gz'), path("core/core.*"), val(status), emit: snippy_results
 
     when:
     task.ext.when == null || task.ext.when
@@ -161,11 +163,13 @@ process CALL_VARIANTS_OLD {
     mv core.stats core/
 
     # compress outputs
-    dirs=$(ls -d snippy_new/*/)
+    cd snippy_new
+    dirs=$(ls -d */)
     for d in ${dirs}
     do
         name=${d%/}
         tar -czvf ${name##*/}.tar.gz ${d}
     done
+    cd ../
     '''
 }

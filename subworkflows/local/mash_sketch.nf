@@ -28,9 +28,9 @@ workflow MASH_SKETCH {
     manifest_simple
         .filter { taxa_cluster, sample, taxa, assembly, cluster, status, cluster_cache -> status == "old" }
         .set { old_clusters }
-    // Prepare manifest for all sample comparison
+    // Prepare manifest for all sample comparison 
     manifest_simple
-        .map {taxa_cluster, sample, taxa, assembly, cluster, status, cluster_cache -> [taxa, assembly, params.db+taxa.get(0)+"/mash/CACHE"] }
+        .map {taxa_cluster, sample, taxa, assembly, cluster, status, cluster_cache -> [sample, taxa, assembly, params.db+taxa.get(0)+"/mash/CACHE"] }
         .set { all_with_cache }
 
     // Determine which sketch files to use
