@@ -115,10 +115,12 @@ workflow BIGBACTER {
 
    CALL_VARIANTS
         .out
-        .new_bb_db
+        .snp_results
         .map { [it.get(0), it.get(1), it.get(2), it.get(3), it.get(4), it.get(5), it.get(6)] }
         .join(mash_cluster)
         .set { push_list }
+
+    MASH_SKETCH.out.mash_all.view { it }
 
    // SUBWORFLOW: Push files to databases
    if(params.push){

@@ -5,7 +5,7 @@ process IQTREE {
     tuple val(taxa_cluster), val(cluster), val(taxa), val(bb_db), val(snippy_new), path(core), val(status)
 
     output:
-    tuple val(taxa_cluster), path("*.treefile")
+    tuple val(taxa_cluster), val(cluster), val(taxa), val(bb_db), val(snippy_new), path('core.*', includeInputs: true), val(status), emit: snp_results
 
     when:
     task.ext.when == null || task.ext.when
@@ -23,24 +23,46 @@ process IQTREE {
 }
 
 
-   mash_cluster = mash_cluster // channel: [val(taxa_cluster), new_mash, mash_cache, ava_cluster]
-    mash_all = MASH_DIST_ALL.out.mash_results // channel: [val(taxa), new_mash, mash_cache, ava_all]
-
-process MASH_TREES {
-    container 'staphb/mash:2.3'
+process MASH_TREE_CLUSTER {
+    container 'johnjare/spree:1.0'
 
     input:
-    tuple val(taxa_cluster), val(new_mash_cluster), val(mash_cache_cluster), path(ava_cluster)
-    tuple val(taxa), val(new_mash_all), val(mash_cache_all), path(ava_all)
+    tuple val(taxa_cluster), val(new_mash), val(mash_cache), path(ava_cluster)
 
     output:
-    tuple val(taxa_cluster), path("*.treefile")
+    tuple val(taxa_cluster), val(new_mash), val(mash_cache), path("mash-ava-cluster.*", includeInputs: true), emit: mash_results
 
     when:
     task.ext.when == null || task.ext.when
 
     shell:
     '''
-    
+    build-mash-tree.R !{ava_cluster} || true
+    if [[ ! -f "mash-ava-cluster.treefile" ]]
+    then
+        touch mash-ava-cluster.fail.tree
+    fi
+    '''
+}
+
+process MASH_TREE_ALL {
+    container 'johnjare/spree:1.0'
+
+    input:
+    tuple val(taxa), val(new_mash), val(mash_cache), path(ava_all)
+
+    output:
+    tuple val(taxa), val(new_mash), val(mash_cache), path("mash-ava-all.*", includeInputs: true), emit: mash_results
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    shell:
+    '''
+    build-mash-tree.R !{ava_all} || true
+    if [[ ! -f "mash-ava-all.treefile" ]]
+    then
+        touch mash-ava-all.fail.tree
+    fi
     '''
 }

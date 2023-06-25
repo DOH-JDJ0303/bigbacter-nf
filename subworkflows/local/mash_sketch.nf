@@ -9,6 +9,9 @@ include { MASH_DIST_CLUSTER_NEW } from '../../modules/local/mash-dist'
 include { MASH_DIST_CLUSTER_OLD } from '../../modules/local/mash-dist'
 include { MASH_DIST_ALL } from '../../modules/local/mash-dist'
 
+include { MASH_TREE_CLUSTER } from '../../modules/local/build-trees'
+include { MASH_TREE_ALL } from '../../modules/local/build-trees'
+
 workflow MASH_SKETCH {
     take:
     manifest // channel: [ val(taxa_cluster), val(sample), val(taxa), path(assembly), val(fastq_1), val(fastq_2), val(cluster), val(status) ]
@@ -39,20 +42,22 @@ workflow MASH_SKETCH {
     // All samples
     GET_MASH_SKETCH_ALL(all_with_cache)
 
-    // Run mash
+    // Run mash & build trees
     // Per cluster
     MASH_DIST_CLUSTER_NEW(new_clusters)
     MASH_DIST_CLUSTER_OLD(GET_MASH_SKETCH_CLUSTER.out.mash_cluster, timestamp)
-    // All samples
-    MASH_DIST_ALL(GET_MASH_SKETCH_ALL.out.mash_all, timestamp)
-
     MASH_DIST_CLUSTER_NEW
         .out
         .mash_results
         .concat(MASH_DIST_CLUSTER_OLD.out.mash_results)
         .set { mash_cluster }
+    MASH_TREE_CLUSTER(mash_cluster)
+
+    // All samples
+    MASH_DIST_ALL(GET_MASH_SKETCH_ALL.out.mash_all, timestamp)
+    MASH_TREE_ALL(MASH_DIST_ALL.out.mash_results)
 
     emit:
-    mash_cluster = mash_cluster // channel: [val(taxa_cluster), new_mash, mash_cache, ava_cluster]
-    mash_all = MASH_DIST_ALL.out.mash_results // channel: [val(taxa), new_mash, mash_cache, ava_all]
+    mash_cluster = MASH_TREE_CLUSTER.out.mash_results // channel: [val(taxa_cluster), new_mash, mash_cache, ava_cluster]
+    mash_all = MASH_TREE_ALL.out.mash_results // channel: [val(taxa), new_mash, mash_cache, ava_all]
 }

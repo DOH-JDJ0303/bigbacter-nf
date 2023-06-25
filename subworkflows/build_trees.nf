@@ -1,15 +1,16 @@
 //
-// Call variants per cluster
+// Create tree files
 //
 
-include { CALL_VARIANTS_NEW } from '../../modules/local/call-variants'
-include { CALL_VARIANTS_OLD } from '../../modules/local/call-variants'
-include { SNP_DISTS } from '../../modules/local/snp-dists'
 include { IQTREE } from '../../modules/local/build-trees'
+include { MASH_TREE_CLUSTER } from '../../modules/local/build-trees'
+include { MASH_TREE_ALL } from '../../modules/local/build-trees'
 
-workflow CALL_VARIANTS {
+workflow BUILD_TREES {
     take:
-    manifest // channel: [ val(taxa_cluster), val(sample), val(taxa), path(assembly), path(fastq_1), path(fastq_2), val(cluster), val(status) ]
+    
+    mash_cluster // channel: [val(taxa_cluster), val(new_mash_cluster), val(mash_cache_cluster), path(ava_cluster)]
+    mash_all // channel: [val(taxa), val(new_mash_all), val(mash_cache_all), path(ava_all)]
 
     main:
     // Split samples into new and old
@@ -23,23 +24,15 @@ workflow CALL_VARIANTS {
         .map { taxa_cluster, samples, taxas, assemblies, fastq_1s, fastq_2s, clusters, status -> [taxa_cluster, samples, taxas, assemblies, fastq_1s, fastq_2s, clusters, status, params.db+taxas.get(0)+"/clusters/"+clusters.get(0)] }
         .set { old_clusters }
 
-    // Call variants using Snippy
     CALL_VARIANTS_NEW(new_clusters)
     CALL_VARIANTS_OLD(old_clusters)
-    
-    // Combine new and old cluster paths
+
     CALL_VARIANTS_NEW
         .out
         .snippy_results
         .concat(CALL_VARIANTS_OLD.out.snippy_results)
-        .set {old_new_merged}
-
-    // Create SNP distance matrix
-    SNP_DISTS(old_new_merged)
-
-    // Create SNP tree
-    IQTREE(SNP_DISTS.out.snp_results)
+        .set {new_bb_db}
 
     emit:
-    snp_results = IQTREE.out.snp_results // channel: [taxa_cluster, cluster, taxa, bb_db, snippy_new, core, status]
+    new_bb_db = new_bb_db // channel: [taxa_cluster, cluster, taxa, bb_db, snippy_new, core, status]
 }
