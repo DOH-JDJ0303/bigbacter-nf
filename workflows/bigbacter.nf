@@ -41,6 +41,7 @@ include { INPUT_CHECK } from '../subworkflows/local/input_check'
 include { ASSIGN_CLUSTER } from '../subworkflows/local/assign_cluster'
 include { CALL_VARIANTS } from '../subworkflows/local/variant_calling'
 include { MASH_SKETCH } from '../subworkflows/local/mash_sketch'
+include { SUMMARIZE_RESULTS } from '../subworkflows/local/summarize_results'
 include { PUSH_FILES } from '../subworkflows/local/push_samples'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -118,15 +119,15 @@ workflow BIGBACTER {
         .snp_results
         .map { [it.get(0), it.get(1), it.get(2), it.get(3), it.get(4), it.get(5), it.get(6)] }
         .join(mash_cluster)
-        .set { push_list }
+        .set { all_cluster_results }
 
-    MASH_SKETCH.out.mash_all.view { it }
+   SUMMARIZE_RESULTS(all_cluster_results, MASH_SKETCH.out.mash_all, timestamp)
 
    // SUBWORFLOW: Push files to databases
    if(params.push){
        PUSH_FILES(
             ASSIGN_CLUSTER.out.new_pp_db,
-            push_list,
+            all_cluster_results,
             MASH_SKETCH.out.mash_all
        )
     }

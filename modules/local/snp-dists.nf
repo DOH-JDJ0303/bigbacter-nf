@@ -15,10 +15,10 @@ process SNP_DISTS {
     '''
     # run snp-dists
     snp-dists -b core.aln > core.dist || true
-    # return empty file if snp-dists fails
-    if [[ ! -f "core.dist" ]]
+    # rename 'core.dist' to 'core.dist.fail' if empty
+    if [[ ! -s "core.dist" ]]
     then
-        touch core.fail.dist
+        mv core.dist core.fail.dist
     fi
     '''
 }

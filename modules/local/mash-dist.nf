@@ -5,7 +5,7 @@ process MASH_DIST_CLUSTER_NEW {
     tuple val(taxa_cluster), val(sample), val(taxa), path(assembly), val(cluster), val(status), val(mash_sketch)
 
     output:
-    tuple val(taxa_cluster), path('00.msh'), path('CACHE'), path('mash-ava-cluster.tsv'), emit: mash_results
+    tuple val(taxa_cluster), path('0000000000.msh'), path('CACHE'), path('mash-ava-cluster.tsv'), emit: mash_results
 
     when:
     task.ext.when == null || task.ext.when

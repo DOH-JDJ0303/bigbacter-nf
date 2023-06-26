@@ -1,5 +1,5 @@
 process IQTREE {
-    container 'staphb/mash:2.3'
+    container 'staphb/iqtree2:2.2.2.6'
 
     input:
     tuple val(taxa_cluster), val(cluster), val(taxa), val(bb_db), val(snippy_new), path(core), val(status)
@@ -13,7 +13,7 @@ process IQTREE {
     shell:
     '''
     # run IQTREE2
-    iqtree -s core.aln || true
+    iqtree2 -s core.aln || true
     # check for output
     if [[ ! -f "*.treefile" ]]
     then
