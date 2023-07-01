@@ -1,6 +1,4 @@
 process CALL_VARIANTS_NEW {
-    container 'staphb/snippy:4.6.0-SC2'
-
     input:
     tuple val(taxa_cluster), val(samples), val(taxa), path(assemblies), path(fastq_1), path(fastq_2), val(cluster), val(status)
 
@@ -11,11 +9,12 @@ process CALL_VARIANTS_NEW {
     task.ext.when == null || task.ext.when
 
     shell:
-    assembly_names = assemblies.name
-    fwd_reads = fastq_1.name
-    rev_reads = fastq_2.name
-    taxa_name = taxa[0]
-    cluster_name = cluster[0]
+    def args           = task.ext.args ?: ''
+    def assembly_names = assemblies.name
+    def fwd_reads      = fastq_1.name
+    def rev_reads      = fastq_2.name
+    def taxa_name      = taxa[0]
+    def cluster_name   = cluster[0]
     '''
     # create .tsv of samples and their associated files
     echo !{samples} | tr -d '[] ' | tr ',' '\n' > s_col
@@ -84,8 +83,6 @@ process CALL_VARIANTS_NEW {
 
 
 process CALL_VARIANTS_OLD {
-    container 'staphb/snippy:4.6.0-SC2'
-
     input:
     tuple val(taxa_cluster), val(samples), val(taxa), path(assemblies), path(fastq_1), path(fastq_2), val(cluster), val(status), path(cluster_dir)
 
@@ -96,12 +93,13 @@ process CALL_VARIANTS_OLD {
     task.ext.when == null || task.ext.when
 
     shell:
+    args           = task.ext.args ?: ''
     assembly_names = assemblies.name
-    fwd_reads = fastq_1.name
-    rev_reads = fastq_2.name
-    taxa_name = taxa[0]
-    cluster_name = cluster[0]
-    snippy_new = "snippy_new"
+    fwd_reads      = fastq_1.name
+    rev_reads      = fastq_2.name
+    taxa_name      = taxa[0]
+    cluster_name   = cluster[0]
+    snippy_new     = "snippy_new"
     '''
     # create .tsv of samples and their associated files
     echo !{samples} | tr -d '[] ' | tr ',' '\n' > s_col

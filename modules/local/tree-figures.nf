@@ -1,47 +1,51 @@
 process TREE_FIGURE_CLUSTER {
-    container 'johnjare/spree:1.0'
 
     input:
-    tuple val(taxa_cluster), val(cluster), val(taxa), val(bb_db), val(snippy_new), path(core), val(status), val(mash_sketch_cluster), val(mash_cache_cluster), path(ava_cluster)
+    tuple val(taxa_cluster), val(taxa), val(cluster), path(core), path(ava_cluster)
+    val timestamp
 
     output:
-    tuple val(taxa_cluster), val(cluster), val(taxa), val(bb_db), val(snippy_new), path('core.*', includeInputs: true), val(status), val(mash_sketch_cluster), val(mash_cache_cluster), path("mash-ava-cluster.*", includeInputs: true), emit: all_cluster_results
+    path "*.jpg", emit: tree_figures
 
     when:
     task.ext.when == null || task.ext.when
 
     shell:
+    taxa_name    = taxa[0]
+    cluster_name = cluster[0]
+    prefix       = "${timestamp}-${taxa_name}-${cluster_name}-core"
     '''
     # core SNP tree
-    if [[ -f 'core.aln.treefile' ]]
+    if [[ -f '!{prefix}.aln.treefile' ]]
     then
-        tree-figures.R 'core.aln.treefile'
+        tree-figures.R '!{prefix}.aln.treefile'
     else
-        touch 'core.aln.treefile.fail.jpg'
+        touch '!{prefix}.fail'
     fi
     # Mash tree
     if [[ -f 'mash-ava-cluster.treefile' ]]
     then
         tree-figures.R 'mash-ava-cluster.treefile'
     else
-        touch 'mash-ava-cluster.treefile.fail.jpg'
+        touch 'mash-ava-cluster.fail.treefile.jpg'
     fi
     '''
 }
 
 process TREE_FIGURE_ALL {
-    container 'johnjare/spree:1.0'
 
     input:
-    tuple val(taxa), val(mash_sketch_all), val(mash_cache_all), path(ava_all)
+    tuple val(taxa), path(ava_taxa)
+    val timestamp
 
     output:
-    tuple val(taxa), val(mash_sketch_all), val(mash_cache_all), path('mash-ava-all.*', includeInputs: true), emit: mash_all
+    path "*.jpg", emit: tree_figures
 
     when:
     task.ext.when == null || task.ext.when
 
     shell:
+    taxa_name = taxa[0]
     '''
     # Mash tree
     if [[ -f 'mash-ava-all.treefile' ]]

@@ -1,24 +1,26 @@
 process SNP_DISTS {
-    container 'staphb/snp-dists:0.8.2'
-
     input:
-    tuple val(taxa_cluster), val(cluster), val(taxa), val(bb_db), val(snippy_new), path(core), val(status)
-
+    tuple val(taxa_cluster), val(taxa), val(cluster), path(core)
+    val timestamp
 
     output:
-    tuple val(taxa_cluster), val(cluster), val(taxa), val(bb_db), val(snippy_new), path("core.*", includeInputs: true), val(status), emit: snp_results
+    tuple val(taxa_cluster), val(taxa), val(cluster), path("${prefix}.*", includeInputs: true), emit: results
 
     when:
     task.ext.when == null || task.ext.when
 
     shell:
+    args         = task.ext.args ?: ''
+    taxa_name    = taxa[0]
+    cluster_name = cluster[0]
+    prefix       = "${timestamp}-${taxa_name}-${cluster_name}-core"
     '''
     # run snp-dists
-    snp-dists -b core.aln > core.dist || true
-    # rename 'core.dist' to 'core.dist.fail' if empty
-    if [[ ! -s "core.dist" ]]
+    snp-dists !{args} !{prefix}.aln > !{prefix}.dist || true
+    # rename '!{prefix}.dist' to '!{prefix}.dist.fail' if empty
+    if [[ ! -s "!{prefix}.dist" ]]
     then
-        mv core.dist core.fail.dist
+        mv !{prefix}.dist !{prefix}.fail.dist
     fi
     '''
 }

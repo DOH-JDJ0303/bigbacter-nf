@@ -2,10 +2,11 @@ process GET_PP_DB {
 
     input:
     tuple path(cache), val(sample), val(taxa), val(assembly)
+    val timestamp
 
     output:
     tuple stdout, val(sample), val(taxa), val(assembly), emit: pp_list
-    path "versions.yml", emit: versions
+    path "versions.yml",                                 emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -13,7 +14,7 @@ process GET_PP_DB {
     shell:
     '''
     cdb=$(cat !{cache})
-    echo "!{params.db}/!{taxa}/pp_db/${cdb}/" | tr -d '\t\n\r '
+    echo "!{params.db}/!{taxa}/pp_db/${cdb}.tar.gz" | tr -d '\t\n\r '
     
     echo "hello" > versions.yml
     '''
@@ -23,6 +24,7 @@ process GET_MASH_SKETCH_CLUSTER {
 
     input:
     tuple val(taxa_cluster), val(sample), val(taxa), val(assembly), val(cluster), val(status), path(cluster_cache) 
+    val timestamp
 
     output:
     tuple val(taxa_cluster), val(sample), val(taxa), val(assembly), val(cluster), val(status), stdout, emit: mash_cluster
@@ -32,7 +34,7 @@ process GET_MASH_SKETCH_CLUSTER {
     task.ext.when == null || task.ext.when
 
     shell:
-    taxa_name = taxa[0]
+    taxa_name    = taxa[0]
     cluster_name = cluster[0]
     '''
     cmsh=$(cat !{cluster_cache})
@@ -46,6 +48,7 @@ process GET_MASH_SKETCH_ALL {
 
     input:
     tuple val(sample), val(taxa), val(assembly), path(all_cache)
+    val timestamp
 
     output:
     tuple val(sample), val(taxa), val(assembly), stdout, emit: mash_all

@@ -2,44 +2,57 @@
 // Call variants per cluster
 //
 
-include { CALL_VARIANTS_NEW } from '../../modules/local/call-variants'
-include { CALL_VARIANTS_OLD } from '../../modules/local/call-variants'
-include { SNP_DISTS } from '../../modules/local/snp-dists'
-include { IQTREE } from '../../modules/local/build-trees'
+include { SNIPPY_SINGLE } from '../../modules/local/snippy'
+include { SNIPPY_CORE   } from '../../modules/local/snippy'
+include { SNP_DISTS     } from '../../modules/local/snp-dists'
+include { IQTREE        } from '../../modules/local/build-trees'
 
 workflow CALL_VARIANTS {
     take:
-    manifest // channel: [ val(taxa_cluster), val(sample), val(taxa), path(assembly), path(fastq_1), path(fastq_2), val(cluster), val(status) ]
+    manifest      // channel: [ val(taxa_cluster), val(sample), val(taxa), path(assembly), path(fastq_1), path(fastq_2), val(cluster), val(status), path(reference) ]
+    old_var_files // channel: [ val(taxa_cluster), path(old_var_files) ]
+    timestamp     // channel: val(timestamp)
 
     main:
-    // Split samples into new and old
-    // New clusters
-    manifest
-        .filter { taxa_cluster, samples, taxas, assemblies, fastq_1s, fastq_2s, clusters, status -> status == "new" }
-        .set { new_clusters }
-    // Old clusters
-    manifest
-        .filter { taxa_cluster, samples, taxas, assemblies, fastq_1s, fastq_2s, clusters, status -> status == "old" }
-        .map { taxa_cluster, samples, taxas, assemblies, fastq_1s, fastq_2s, clusters, status -> [taxa_cluster, samples, taxas, assemblies, fastq_1s, fastq_2s, clusters, status, params.db+taxas.get(0)+"/clusters/"+clusters.get(0)] }
-        .set { old_clusters }
+    // Perform initial variant calling for each sample using Snippy
+    SNIPPY_SINGLE(
+        manifest,
+        timestamp
+    )
 
-    // Call variants using Snippy
-    CALL_VARIANTS_NEW(new_clusters)
-    CALL_VARIANTS_OLD(old_clusters)
-    
-    // Combine new and old cluster paths
-    CALL_VARIANTS_NEW
+    // Group by 'taxa_cluster' and append on any old samples files
+    old_var_files
+        .map { taxa_cluster, old_var_files -> [taxa_cluster, old_var_files]}
+        .set { old_var_files }
+
+    SNIPPY_SINGLE
         .out
-        .snippy_results
-        .concat(CALL_VARIANTS_OLD.out.snippy_results)
-        .set {old_new_merged}
+        .results
+        .map { taxa_cluster, taxa, cluster, reference, new_snippy -> [taxa_cluster, taxa, cluster, reference, new_snippy] }
+        .groupTuple(by: 0)
+        .map { taxa_cluster, taxa, cluster, reference, new_snippy -> [taxa_cluster, taxa, cluster, reference[0], new_snippy] }
+        .join(old_var_files)
+        .set { all_snippy_files }
+    
+    // Run Snippy-core
+    SNIPPY_CORE(
+        all_snippy_files,
+        timestamp
+    )
 
     // Create SNP distance matrix
-    SNP_DISTS(old_new_merged)
+    SNP_DISTS(
+        SNIPPY_CORE.out.results,
+        timestamp
+    )
 
     // Create SNP tree
-    IQTREE(SNP_DISTS.out.snp_results)
+    IQTREE(
+        SNP_DISTS.out.results,
+        timestamp
+    )
 
     emit:
-    snp_results = IQTREE.out.snp_results // channel: [taxa_cluster, cluster, taxa, bb_db, snippy_new, core, status]
+    sample_results = SNIPPY_SINGLE.out.results // channel: [taxa_cluster, taxa, cluster, reference, new_snippy]
+    core_results = IQTREE.out.results          // channel: [taxa_cluster, taxa, cluster, core]
 }

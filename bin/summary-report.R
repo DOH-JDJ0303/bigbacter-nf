@@ -10,24 +10,23 @@ taxa <- args[2]
 cluster <- args[3]
 strong_linkage_cutoff <- args[4]
 intermediate_linkage_cutoff <- args[5]
+core_s_file <- args[6]
+core_d_file <- args[7]
 
 # load new samples
-new_samples <- read_tsv("new_samples", col_names = F) %>% 
-  .$X1 %>% 
-  str_remove_all(pattern = ".*/" ) %>%
-  str_remove_all(pattern = ".tar.gz")
+new_samples <- read_tsv("new_samples", col_names = F)
   
 ### CORE SNPS ###
 # load core SNP stats
-core_s <- read_tsv("core.stats")
+core_s <- read_tsv(core_s_file)
 # determine number of samples in cluster (must pass all QC)
 n_iso <- core_s %>%
   subset(QUAL == "PASS" & ID != "Reference") %>%
   nrow()
 
 # Load distance matrix - if the file exists
-if(file.exists("core.dist")){
-  core_d <- read_tsv("core.dist") %>%
+if(file.exists(core_d_file)){
+  core_d <- read_tsv(core_d_file) %>%
     rename(ID = ...1) %>%
     pivot_longer(names_to = "ID2", values_to = "snps", cols = 2:ncol(.))
 
@@ -73,10 +72,6 @@ if(file.exists("core.dist")){
     select(ID, STRONG_LINKAGE, INTER_LINKAGE)
 }
 
-### FILE PATHS ###
-core_f <- read_tsv("core_f", col_names = F)
-mash_f <- read_tsv("mash_f", col_names = F)
-
 # combine all together and save
 ## combine all
 summary <- core_s %>%
@@ -86,12 +81,10 @@ summary <- core_s %>%
          TAXA = taxa,
          CLUSTER = cluster,
          ISO_IN_CLUSTER = n_iso,
-         CORE_FILES = paste(core_f$X1, collapse = ", "),
-         MASH_FILES = paste(mash_f$X1, collapse = ", ")
          ) %>%
-  select(ID, QUAL, RUN_ID, TAXA, CLUSTER, ISO_IN_CLUSTER, MEAN_SNP_DIST, MIN_SNP_DIST, MAX_SNP_DIST, STRONG_LINKAGE, INTER_LINKAGE, LENGTH, ALIGNED, UNALIGNED, VARIANT, HET, MASKED, LOWCOV, PER_GENFRAC, PER_LOWCOV, PER_HET, CORE_FILES, MASH_FILES) %>%
+  select(ID, QUAL, RUN_ID, TAXA, CLUSTER, ISO_IN_CLUSTER, MEAN_SNP_DIST, MIN_SNP_DIST, MAX_SNP_DIST, STRONG_LINKAGE, INTER_LINKAGE, LENGTH, ALIGNED, UNALIGNED, VARIANT, HET, MASKED, LOWCOV, PER_GENFRAC, PER_LOWCOV, PER_HET) %>%
   .[.$ID %in% new_samples,]
 ## make file name
-filename <- paste0(taxa,"-",cluster,"-report.tsv")
+filename <- paste0(run_id,"-",taxa,"-",cluster,"-summary.tsv")
 ## write table
 write.table(x = summary, file=filename, quote = F, sep = "\t", row.names = F)
