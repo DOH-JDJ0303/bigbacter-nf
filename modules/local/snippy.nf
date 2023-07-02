@@ -44,14 +44,15 @@ process SNIPPY_CORE {
     cluster_name = cluster[0]
     prefix       = "${timestamp}-${taxa_name}-${cluster_name}-core"
     '''
-    # decompress files
+    # Extract files
     mkdir snippy_files
-    new_files=$(echo !{new_files} | tr -d '[] ' | tr ',' '\n')
-    old_files=$(echo !{old_files} | tr -d '[] ' | tr ',' '\n')
+    new_files=$(echo !{new_files} | tr -d '[] ' | tr ',' '\n' | grep "tar.gz")
+    old_files=$(echo !{old_files} | tr -d '[] ' | tr ',' '\n' | grep -v "tar.gz")
     all_files="${new_files} ${old_files}"
     for f in ${all_files}
     do
-        tar -xzvf ${f} -C snippy_files/
+        echo "Extracting ${f}"
+        tar -xzvhf ${f} -C snippy_files/
     done
 
     # run Snippy-core
