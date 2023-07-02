@@ -138,13 +138,9 @@ workflow BIGBACTER {
     snippy_cluster_results
         .join(mash_cluster_results)
         .set { all_cluster_results }
-    manifest
-        .map { it.sample }
-        .set { new_samples }
     SUMMARIZE_RESULTS(
         all_cluster_results, 
         mash_taxa_results,
-        new_samples,
         timestamp
     )
     

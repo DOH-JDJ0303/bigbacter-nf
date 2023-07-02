@@ -10,7 +10,6 @@ workflow SUMMARIZE_RESULTS {
     take:
     all_cluster_results // channel: [val(taxa_cluster), val(taxa), va(cluster), path(core), path(ava_cluster)]
     mash_all            // channel: [val(taxa), path(ava_taxa)]
-    new_samples         // channel: [val(sample)]
     timestamp           // channel: val timestamp
 
     main:
@@ -29,7 +28,6 @@ workflow SUMMARIZE_RESULTS {
     // Make summary table
     SUMMARY_TABLE(
         all_cluster_results, 
-        new_samples,
         timestamp
     )
 
