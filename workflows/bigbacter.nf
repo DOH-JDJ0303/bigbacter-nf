@@ -191,8 +191,6 @@ workflow BIGBACTER {
         .join(new_cluster_sketch)
         .join(dummy_cluster_summary)
         .set { new_cluster_files }
-
-    new_taxa_files.view()
     
     if(params.push){
        PUSH_FILES(

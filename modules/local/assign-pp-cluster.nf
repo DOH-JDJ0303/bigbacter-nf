@@ -57,8 +57,8 @@ process ASSIGN_PP_CLUSTER {
     clusts=$(cat pp_results.csv | tr ',' '\t' | cut -f 2 | grep -v "cluster" | sort | uniq)
     for c in ${clusts}
     do
-        status=$(cat ${db}/${db}_clusters.csv | tr ',' '\t' | awk -v c=${c} '$2 == c {print "new"}' | head -n 1)
-        if [[ "${status}" == "new" ]]
+        status=$(cat ${db}/${db}_clusters.csv | tr ',' '\t' | grep -v "Cluster" | awk -v c=${c} '$2 == c {print "old"}' | sort | uniq)
+        if [[ "${status}" == "old" ]]
         then
             echo "!{taxa_name}_${c},old" >> cluster_status.csv
         else
@@ -67,7 +67,7 @@ process ASSIGN_PP_CLUSTER {
     done
     # create table of samples and their asociated status
     echo "sample,status" > sample_status.csv
-    samp=$(cat pp_results.csv)
+    samp=$(cat pp_results.csv | tail -n +2)
     for line in ${samp}
     do
         sample=$(echo ${line} | tr ',' '\t' | cut -f 1)

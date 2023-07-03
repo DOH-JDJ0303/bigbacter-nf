@@ -12,9 +12,6 @@ strong_linkage_cutoff <- args[4]
 intermediate_linkage_cutoff <- args[5]
 core_s_file <- args[6]
 core_d_file <- args[7]
-
-# load new samples
-new_samples <- read_tsv("new_samples", col_names = F)
   
 ### CORE SNPS ###
 # load core SNP stats
@@ -41,15 +38,15 @@ if(file.exists(core_d_file)){
     strong_link <- core_d %>%
       subset(ID == id) %>%
       subset(ID != ID2) %>%
-      subset(snps <= strong)
-      if(nrow(strong_link > 0)){
+      subset(snps <= as.numeric(strong))
+    if(nrow(strong_link > 0)){
         strong_result <- paste(strong_link$ID2, collapse = ", ")
         }else(strong_result <- "none")
     int_link <- core_d %>%
       subset(ID == id) %>%
       subset(ID != ID2) %>%
-      subset(snps > strong & snps <= intermediate)
-     if(nrow(int_link > 0)){
+      subset(snps > as.numeric(strong) & snps <= as.numeric(intermediate))
+    if(nrow(int_link > 0)){
         int_result <- paste(int_link$ID2, collapse = ", ")
         }else(int_result <- "none")
     result <- data.frame("ID" = id, "STRONG_LINKAGE" = strong_result, "INTER_LINKAGE" = int_result)
@@ -82,8 +79,7 @@ summary <- core_s %>%
          CLUSTER = cluster,
          ISO_IN_CLUSTER = n_iso,
          ) %>%
-  select(ID, QUAL, RUN_ID, TAXA, CLUSTER, ISO_IN_CLUSTER, MEAN_SNP_DIST, MIN_SNP_DIST, MAX_SNP_DIST, STRONG_LINKAGE, INTER_LINKAGE, LENGTH, ALIGNED, UNALIGNED, VARIANT, HET, MASKED, LOWCOV, PER_GENFRAC, PER_LOWCOV, PER_HET) %>%
-  .[.$ID %in% new_samples,]
+  select(ID, QUAL, RUN_ID, TAXA, CLUSTER, ISO_IN_CLUSTER, MEAN_SNP_DIST, MIN_SNP_DIST, MAX_SNP_DIST, STRONG_LINKAGE, INTER_LINKAGE, LENGTH, ALIGNED, UNALIGNED, VARIANT, HET, MASKED, LOWCOV, PER_GENFRAC, PER_LOWCOV, PER_HET)
 ## make file name
 filename <- paste0(run_id,"-",taxa,"-",cluster,"-summary.tsv")
 ## write table

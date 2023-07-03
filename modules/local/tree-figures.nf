@@ -5,7 +5,7 @@ process TREE_FIGURE_CLUSTER {
     val timestamp
 
     output:
-    path "*.jpg", emit: tree_figures
+    path "*.jpg*", emit: tree_figures
 
     when:
     task.ext.when == null || task.ext.when
@@ -27,7 +27,7 @@ process TREE_FIGURE_CLUSTER {
     then
         tree-figures.R 'mash-ava-cluster.treefile'
     else
-        touch 'mash-ava-cluster.fail.treefile.jpg'
+        touch 'mash-ava-cluster.treefile.jpg.fail'
     fi
     '''
 }
@@ -39,7 +39,7 @@ process TREE_FIGURE_ALL {
     val timestamp
 
     output:
-    path "*.jpg", emit: tree_figures
+    path "*.jpg*", emit: tree_figures
 
     when:
     task.ext.when == null || task.ext.when
@@ -52,7 +52,7 @@ process TREE_FIGURE_ALL {
     then
         tree-figures.R 'mash-ava-all.treefile'
     else
-        touch 'mash-ava-all.treefile.fail.jpg'
+        touch 'mash-ava-all.treefile.jpg.fail'
     fi
     '''
 }

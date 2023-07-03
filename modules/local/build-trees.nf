@@ -20,7 +20,7 @@ process IQTREE {
     # check for output
     if [[ ! -f "*.treefile" ]]
     then
-        touch !{prefix}.fail.treefile
+        touch !{prefix}.treefile.fail
     fi
     '''
 }
@@ -33,7 +33,7 @@ process MASH_TREE_CLUSTER {
     val timestamp
 
     output:
-    tuple val(taxa_cluster), val(new_mash), val(mash_cache), path("*.treefile", includeInputs: true), emit: mash_results
+    tuple val(taxa_cluster), val(new_mash), val(mash_cache), path("mash-ava-cluster.treefile*", includeInputs: true), emit: mash_results
 
     when:
     task.ext.when == null || task.ext.when
@@ -46,7 +46,7 @@ process MASH_TREE_CLUSTER {
     build-mash-tree.R !{ava_cluster} || true
     if [[ ! -f "mash-ava-cluster.treefile" ]]
     then
-        touch mash-ava-cluster.fail.treefile
+        touch mash-ava-cluster.treefile.fail
     fi
     '''
 }
@@ -58,7 +58,7 @@ process MASH_TREE_ALL {
     val timestamp
 
     output:
-    tuple val(taxa), val(new_mash), val(mash_cache), path("*.treefile", includeInputs: true), emit: mash_results
+    tuple val(taxa), val(new_mash), val(mash_cache), path("mash-ava-all.treefile*", includeInputs: true), emit: mash_results
 
     when:
     task.ext.when == null || task.ext.when
@@ -70,7 +70,7 @@ process MASH_TREE_ALL {
     build-mash-tree.R !{ava_all} || true
     if [[ ! -f "mash-ava-all.treefile" ]]
     then
-        touch mash-ava-all.fail.treefile
+        touch mash-ava-all.treefile.fail
     fi
     '''
 }

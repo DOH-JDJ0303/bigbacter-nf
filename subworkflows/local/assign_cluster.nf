@@ -33,14 +33,14 @@ workflow ASSIGN_CLUSTER {
         timestamp
     )
 
-    // Combine cluster results, new reference status, and the original manifest into single channel
+    // Combine cluster results, status, and the original manifest into single channel
      ASSIGN_PP_CLUSTER
         .out
         .sample_status
         .splitCsv(header: true)
         .map { tuple(it.sample, it.status) }
         .set { sample_status }
-
+    
     ASSIGN_PP_CLUSTER
         .out
         .cluster_results
@@ -56,7 +56,6 @@ workflow ASSIGN_CLUSTER {
         .join(sample_status)
         .map { sample, taxa, assembly, fastq_1, fastq_2, cluster, taxa_cluster, status -> [taxa_cluster, sample, taxa, assembly, fastq_1, fastq_2, cluster, status]}
         .set { manifest }
-
 
     emit:
     manifest = manifest                                   // channel: [ val(taxa_cluster), val(sample), val(taxa), path(assembly), path(fastq_1), path(fastq_2), val(cluster), val(status) ]
