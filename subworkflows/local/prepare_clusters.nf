@@ -7,25 +7,26 @@ include { FETCH_EXISTING_DB } from '../../modules/local/fetch-existing-db'
 
 workflow PREPARE_CLUSTERS {
     take:
-    manifest  // channel: [ val(taxa_cluster), val(sample), val(taxa), path(assembly), path(fastq_1), path(fastq_2), val(cluster), val(status) ]
+    manifest  // channel: [ val(sample), val(taxa), path(assembly), path(fastq_1), path(fastq_2), val(cluster), val(status) ]
     timestamp // channel: val(timestamp)
 
     main:
     // Split samples into new and old and create version that is grouped by 'taxa_cluster'
     // New clusters
     manifest
-        .filter { taxa_cluster, samples, taxas, assemblies, fastq_1s, fastq_2s, clusters, status -> status == "new" }
+        .filter { sample, taxa, assembly, fastq_1, fastq_2, cluster, status -> status == "new" }
+        .map { sample, taxa, assembly, fastq_1, fastq_2, cluster, status -> t }
         .set { new_clusters }
     new_clusters
-        .groupTuple(by: 0)
+        .groupTuple(by: [0,1])
         .set{ new_clusters_grouped }
     // Old clusters
     manifest
-        .filter { taxa_cluster, samples, taxas, assemblies, fastq_1s, fastq_2s, clusters, status -> status == "old" }
+        .filter { samples, taxas, assemblies, fastq_1s, fastq_2s, clusters, status -> status == "old" }
         .set { old_clusters }
     old_clusters
-        .groupTuple()
-        .map { taxa_cluster, samples, taxas, assemblies, fastq_1s, fastq_2s, clusters, status -> [taxa_cluster, samples, taxas, assemblies, fastq_1s, fastq_2s, clusters, status, params.db+taxas.get(0)+"/clusters/"+clusters.get(0)] }
+        .groupTuple(by: [0,1])
+        .map { samples, taxa, assemblies, fastq_1s, fastq_2s, clusters, status -> [samples, taxas, assemblies, fastq_1s, fastq_2s, clusters, status, params.db+taxas.get(0)+"/clusters/"+clusters.get(0)] }
         .set { old_clusters_grouped }
 
     // Select a reference for new clusters

@@ -89,6 +89,7 @@ workflow BIGBACTER {
     Channel
         .fromPath(params.input)
         .splitCsv(header: true)
+        .map { tuple(it.sample, it.taxa, it.assembly, it.fastq_1, it.fastq_2) }
         .set { manifest }
 
     // SUBWORKFLOW: Assign PopPUNK clusters
@@ -97,107 +98,48 @@ workflow BIGBACTER {
         timestamp
     )
 
-    // SUBWORKFLOW: Prepapre clusters
-    PREPARE_CLUSTERS(
-        ASSIGN_CLUSTER.out.manifest,
-        timestamp
-    )
+    // Update manifest with cluster and status info
+    ASSIGN_CLUSTER.out.sample_cluster_status.map { sample, cluster, status -> [sample, cluster, status] }.set { sample_cluster_status }
+    manifest
+        .map { tuple(it.sample, it.taxa, it.assembly, it.fastq_1, it.fastq_2) }
+        .join(sample_cluster_status)
+        .set { manifest }
+    
+    // Select reference genomes and update manifest
+    manifest
+        .map{ sample, taxa, assembly, fastq_1, fastq_2, cluster, status -> [taxa, cluster, assembly, status]}
+        .groupTuple(by: [0,1])
+        .map{ taxa, cluster, assembly, status -> [taxa, cluster, assembly, status.get(0)] }
+        .set { clust_grps }
+    
+    clust_grps.filter{ taxa, cluster, assembly, status -> status == "new" }.map{ taxa, cluster, assembly, status -> [taxa, cluster, assembly.get(0)] }.set{ clust_grp_new }
+    clust_grps.filter{ taxa, cluster, assembly, status -> status == "old" }.map{ taxa, cluster, assembly, status -> [taxa, cluster, params.db.resolve("clusters").resolve(cluster).resolve("ref/ref.fa") ] }.set{ clust_grps_old }
+    
+    clust_grp_new.concat(clust_grps_old).set{ clust_grps_refs }
+
+    manifest
+        .map { sample, taxa, assembly, fastq_1, fastq_2, cluster, status -> [taxa, cluster, sample, assembly, fastq_1, fastq_2, status] }
+        .join(clust_grps_refs, by: [0,1])
+        .map { taxa, cluster, sample, assembly, fastq_1, fastq_2, status, ref -> [sample, taxa, assembly, fastq_1, fastq_2, cluster, status, ref] }
+        .set{ manifest }
+
     
     // SUBWORKFLOW: Call variants
     CALL_VARIANTS(
-        PREPARE_CLUSTERS.out.manifest, 
-        PREPARE_CLUSTERS.out.old_var_files,
+        manifest, 
         timestamp
     )
 
     // SUBWORKFLOW: Mash comparisons
     MASH_SKETCH(
-        ASSIGN_CLUSTER.out.manifest,
+        manifest,
         timestamp
     )
 
-   // SUBWORKFLOW: Summarize results
-   // Consolidate results
-   // Taxa-specific files
-   MASH_SKETCH
-        .out
-        .mash_all
-        .map { taxa, new_taxa_sketch, new_taxa_cache, ava_taxa -> [taxa, ava_taxa]}
-        .set { mash_taxa_results }
-   // Cluster-specific files
-   MASH_SKETCH
-       .out
-       .mash_cluster
-       .map { taxa_cluster, new_cluster_sketch, new_cluster_cache, ava_cluster -> [taxa_cluster, ava_cluster] }
-       .set { mash_cluster_results }
-   CALL_VARIANTS
-        .out
-        .core_results
-        .map { taxa_cluster, taxa, cluster, core -> [taxa_cluster, taxa, cluster, core] }
-        .set { snippy_cluster_results }
-    snippy_cluster_results
-        .join(mash_cluster_results)
-        .set { all_cluster_results }
-    SUMMARIZE_RESULTS(
-        all_cluster_results, 
-        mash_taxa_results,
-        timestamp
-    )
+   // SUBWORKFLOW: Summarize results1
     
     // SUBWORKFLOW: Push new BigBacter database
-    // Consolidate new database files
-    // Taxa-specific files
-    ASSIGN_CLUSTER
-        .out
-        .new_pp_db
-        .unique()
-        .map { taxa, new_pp_db, new_pp_cache -> [taxa, new_pp_db, new_pp_cache] }
-        .set { new_pp_db }
-    MASH_SKETCH
-        .out
-        .mash_all
-        .unique()
-        .map { taxa, new_taxa_sketch, new_taxa_cache, ava_taxa -> [taxa[0], new_taxa_sketch]}
-        .set { new_taxa_sketch }
-    SUMMARIZE_RESULTS
-        .out
-        .summary
-        .map { taxa_cluster, taxa, summary -> [taxa[0], summary] }
-        .set { dummy_taxa_summary }
-    new_pp_db
-        .join(new_taxa_sketch)
-        .join(dummy_taxa_summary)
-        .set { new_taxa_files }
 
-    // Cluster-specific files
-    CALL_VARIANTS
-        .out
-        .sample_results
-        .map { taxa_cluster, taxa, cluster, reference, new_snippy -> [taxa_cluster, taxa, cluster, reference, new_snippy] }
-        .groupTuple()
-        .map { taxa_cluster, taxa, cluster, reference, new_snippy -> [taxa_cluster, taxa[0], cluster[0], reference[0], new_snippy] }
-        .set { new_variant_files }
-    MASH_SKETCH
-        .out
-        .mash_cluster
-        .map { taxa_cluster, new_cluster_sketch, new_cluster_cache, ava_cluster -> [taxa_cluster, new_cluster_sketch, new_cluster_cache] }
-        .set { new_cluster_sketch }
-    SUMMARIZE_RESULTS
-        .out
-        .summary
-        .map { taxa_cluster, taxa, summary -> [taxa_cluster, summary] }
-        .set { dummy_cluster_summary }
-    new_variant_files
-        .join(new_cluster_sketch)
-        .join(dummy_cluster_summary)
-        .set { new_cluster_files }
-    
-    if(params.push){
-       PUSH_FILES(
-            new_cluster_files,
-            new_taxa_files
-       )
-    }
 
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')

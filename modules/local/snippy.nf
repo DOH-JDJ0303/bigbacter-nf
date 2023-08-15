@@ -1,10 +1,10 @@
 process SNIPPY_SINGLE {
     input:
-    tuple val(taxa_cluster), val(sample), val(taxa), val(assembly), path(fastq_1), path(fastq_2), val(cluster), val(status), path(reference)
+    tuple val(sample), val(taxa), val(assembly), path(fastq_1), path(fastq_2), val(cluster), val(status), path(ref)
     val timestamp
 
     output:
-    tuple val(taxa_cluster), val(taxa), val(cluster), path(reference), path('*.tar.gz'), emit: results
+    tuple val(sample), path('*.tar.gz'), emit: results
 
     when:
     task.ext.when == null || task.ext.when
@@ -14,7 +14,7 @@ process SNIPPY_SINGLE {
     '''
     # run Snippy
     snippy \
-        --reference !{reference} \
+        --reference !{ref} \
         --R1 !{fastq_1} \
         --R2 !{fastq_2} \
         --outdir ./!{sample} \
@@ -27,11 +27,11 @@ process SNIPPY_SINGLE {
 
 process SNIPPY_CORE {
     input:
-    tuple val(taxa_cluster), val(taxa), val(cluster), path(reference), path(new_snippy), path(old_snippy)
+    tuple val(taxa), val(cluster), path(reference), path(new_snippy), path(old_snippy)
     val timestamp
 
     output:
-    tuple val(taxa_cluster), val(taxa), val(cluster), path('core/*'), emit: results
+    tuple val(taxa), val(cluster), path('core/*'), emit: results
 
     when:
     task.ext.when == null || task.ext.when
@@ -47,7 +47,12 @@ process SNIPPY_CORE {
     # Extract files
     mkdir snippy_files
     new_files=$(echo !{new_files} | tr -d '[] ' | tr ',' '\n' | grep "tar.gz")
-    old_files=$(echo !{old_files} | tr -d '[] ' | tr ',' '\n' | grep "tar.gz" || true)
+    if [ -d !{old_files} ]
+    then
+        old_files=$(ls !{old_files} | grep "tar.gz")
+    else
+        old_files=""
+    fi
     all_files="${new_files} ${old_files}"
     for f in ${all_files}
     do
@@ -61,7 +66,7 @@ process SNIPPY_CORE {
     snippy-core --prefix !{prefix} --ref ../!{reference} !{args} ../snippy_files/* || true
     cd ../
 
-    # gather core stats and re-run snippy-core is any samples failed QC
+    # gather core stats and re-run snippy-core if any samples failed QC
     ## gather stats
     echo -e "$(head -n 1 core/!{prefix}.txt)\tPER_GENFRAC\tPER_LOWCOV\tPER_HET\tQUAL" > !{prefix}.stats
     cat core/!{prefix}.txt | tail -n +2 | awk '{genfrac = 100*($3-$8)/($2-$7); plow = 100*$8/($2-$7); phet = 100*$6/($2-$7); print $0, genfrac, plow, phet}' | awk -v g="!{params.min_genfrac}" -v h="!{params.max_het}" -v l="!{params.max_lowcov}" '{if($9 < g || $10 > l || $11 > h) print $0, "FAIL"; else print $0, "PASS"}' | tr ' ' '\t' >> !{prefix}.stats

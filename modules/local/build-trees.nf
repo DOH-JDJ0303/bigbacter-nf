@@ -1,10 +1,10 @@
 process IQTREE {
     input:
-    tuple val(taxa_cluster), val(taxa), val(cluster), path(core)
+    tuple val(taxa), val(cluster), path(core)
     val timestamp
 
     output:
-    tuple val(taxa_cluster), val(taxa), val(cluster), path("${prefix}.*", includeInputs: true), emit: results
+    tuple val(taxa), val(cluster), path("${prefix}.*", includeInputs: true), emit: results
 
     when:
     task.ext.when == null || task.ext.when
@@ -25,15 +25,14 @@ process IQTREE {
     '''
 }
 
-
 process MASH_TREE_CLUSTER {
 
     input:
-    tuple val(taxa_cluster), val(taxa), val(cluster), val(new_mash), val(mash_cache), path(ava_cluster)
+    tuple val(taxa), val(cluster), val(new_sketch), path(ava_cluster)
     val timestamp
 
     output:
-    tuple val(taxa_cluster), val(new_mash), val(mash_cache), path("mash-ava-cluster.treefile*", includeInputs: true), emit: mash_results
+    tuple val(taxa), val(cluster), val(new_sketch), path("mash-ava-cluster.treefile*"), emit: results
 
     when:
     task.ext.when == null || task.ext.when
@@ -47,30 +46,6 @@ process MASH_TREE_CLUSTER {
     if [[ ! -f "mash-ava-cluster.treefile" ]]
     then
         touch mash-ava-cluster.treefile.fail
-    fi
-    '''
-}
-
-process MASH_TREE_ALL {
-
-    input:
-    tuple val(taxa), val(new_mash), val(mash_cache), path(ava_all)
-    val timestamp
-
-    output:
-    tuple val(taxa), val(new_mash), val(mash_cache), path("mash-ava-all.treefile*", includeInputs: true), emit: mash_results
-
-    when:
-    task.ext.when == null || task.ext.when
-
-    shell:
-    args      = task.ext.args ?: ''
-    taxa_name    = taxa[0]
-    '''
-    build-mash-tree.R !{ava_all} || true
-    if [[ ! -f "mash-ava-all.treefile" ]]
-    then
-        touch mash-ava-all.treefile.fail
     fi
     '''
 }

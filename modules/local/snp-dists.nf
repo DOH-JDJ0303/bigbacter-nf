@@ -1,10 +1,10 @@
 process SNP_DISTS {
     input:
-    tuple val(taxa_cluster), val(taxa), val(cluster), path(core)
+    tuple val(taxa), val(cluster), path(core)
     val timestamp
 
     output:
-    tuple val(taxa_cluster), val(taxa), val(cluster), path("${prefix}.*", includeInputs: true), emit: results
+    tuple val(taxa), val(cluster), path("${prefix}.*", includeInputs: true), emit: results
 
     when:
     task.ext.when == null || task.ext.when

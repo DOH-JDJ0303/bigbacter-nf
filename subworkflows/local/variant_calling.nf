@@ -9,8 +9,7 @@ include { IQTREE        } from '../../modules/local/build-trees'
 
 workflow CALL_VARIANTS {
     take:
-    manifest      // channel: [ val(taxa_cluster), val(sample), val(taxa), path(assembly), path(fastq_1), path(fastq_2), val(cluster), val(status), path(reference) ]
-    old_var_files // channel: [ val(taxa_cluster), path(old_var_files) ]
+    manifest      // channel: [ val(sample), val(taxa), path(assembly), path(fastq_1), path(fastq_2), val(cluster), val(status), path(ref) ]
     timestamp     // channel: val(timestamp)
 
     main:
@@ -20,23 +19,22 @@ workflow CALL_VARIANTS {
         timestamp
     )
 
-    // Group by 'taxa_cluster' and append on any old samples files
-    old_var_files
-        .map { taxa_cluster, old_var_files -> [taxa_cluster, old_var_files]}
-        .set { old_var_files }
+    // Add previous SNP files to old clusters
+    manifest
+        .map{ sample, taxa, assembly, fastq_1, fastq_2, cluster, status, ref -> [sample, taxa, cluster, status, ref] }
+        .join(SNIPPY_SINGLE.out.results)
+        .groupTuple(by: [1,2])
+        .map {sample, taxa, cluster, status, ref, new_snps -> [taxa, cluster, status.get(0), ref.get(0), new_snps]}
+        .set {clust_grps}
 
-    SNIPPY_SINGLE
-        .out
-        .results
-        .map { taxa_cluster, taxa, cluster, reference, new_snippy -> [taxa_cluster, taxa, cluster, reference, new_snippy] }
-        .groupTuple(by: 0)
-        .map { taxa_cluster, taxa, cluster, reference, new_snippy -> [taxa_cluster, taxa, cluster, reference[0], new_snippy] }
-        .join(old_var_files)
-        .set { all_snippy_files }
+    clust_grps.filter{ taxa, cluster, status, ref, new_snps -> status == "new" }.map{ taxa, cluster, status, ref, new_snps -> [taxa, cluster, ref, new_snps, []] }.set{ clust_grp_new }
+    clust_grps.filter{ taxa, cluster, status, ref, new_snps -> status == "old" }.map{ taxa, cluster, status, ref, new_snps -> [taxa, cluster, ref, new_snps, params.db.resolve("clusters").resolve(cluster).resolve("snippy/")] }.set{ clust_grp_old }
+
+    clust_grp_new.concat(clust_grp_old).set { snp_files }
     
     // Run Snippy-core
     SNIPPY_CORE(
-        all_snippy_files,
+        snp_files,
         timestamp
     )
 
@@ -53,6 +51,6 @@ workflow CALL_VARIANTS {
     )
 
     emit:
-    sample_results = SNIPPY_SINGLE.out.results // channel: [taxa_cluster, taxa, cluster, reference, new_snippy]
-    core_results = IQTREE.out.results          // channel: [taxa_cluster, taxa, cluster, core]
+    sample_results = SNIPPY_SINGLE.out.results // channel: [taxa, cluster, reference, new_snippy]
+    core_results = IQTREE.out.results          // channel: [taxa, cluster, core]
 }
