@@ -3,7 +3,7 @@
 //
 
 def get_ppdb ( s ) {
-    s_path = params.db.resolve(s)
+    s_path = file(params.db).resolve(s)
     // get most recent PopPunk database
     pp_db = s_path.resolve("pp_db")
     pp_db = pp_db.resolve(pp_db.list().sort().last())
@@ -12,7 +12,7 @@ def get_ppdb ( s ) {
 }
 
 def get_status ( taxa, cluster ) {
-    c_path = file(db_path.resolve(taxa).resolve("clusters").resolve(cluster))
+    c_path = file(params.db).resolve(taxa).resolve("clusters").resolve(cluster)
     status = c_path.exists() ? "old" : "new"
     return status        
 }
@@ -42,7 +42,6 @@ workflow ASSIGN_CLUSTER {
     ASSIGN_PP_CLUSTER
         .out
         .cluster_results
-        .collect()
         .splitCsv(header: true)
         .map { tuple(it.sample, it.taxa, it.cluster) }
         .map{ sample, taxa, cluster -> [sample, cluster, get_status(taxa, cluster)]}

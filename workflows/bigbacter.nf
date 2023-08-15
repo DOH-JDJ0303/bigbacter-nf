@@ -100,10 +100,7 @@ workflow BIGBACTER {
 
     // Update manifest with cluster and status info
     ASSIGN_CLUSTER.out.sample_cluster_status.map { sample, cluster, status -> [sample, cluster, status] }.set { sample_cluster_status }
-    manifest
-        .map { tuple(it.sample, it.taxa, it.assembly, it.fastq_1, it.fastq_2) }
-        .join(sample_cluster_status)
-        .set { manifest }
+    manifest.join(sample_cluster_status).set { manifest }
     
     // Select reference genomes and update manifest
     manifest
@@ -113,7 +110,7 @@ workflow BIGBACTER {
         .set { clust_grps }
     
     clust_grps.filter{ taxa, cluster, assembly, status -> status == "new" }.map{ taxa, cluster, assembly, status -> [taxa, cluster, assembly.get(0)] }.set{ clust_grp_new }
-    clust_grps.filter{ taxa, cluster, assembly, status -> status == "old" }.map{ taxa, cluster, assembly, status -> [taxa, cluster, params.db.resolve("clusters").resolve(cluster).resolve("ref/ref.fa") ] }.set{ clust_grps_old }
+    clust_grps.filter{ taxa, cluster, assembly, status -> status == "old" }.map{ taxa, cluster, assembly, status -> [taxa, cluster, file(params.db).resolve("clusters").resolve(cluster).resolve("ref/ref.fa") ] }.set{ clust_grps_old }
     
     clust_grp_new.concat(clust_grps_old).set{ clust_grps_refs }
 
@@ -122,7 +119,6 @@ workflow BIGBACTER {
         .join(clust_grps_refs, by: [0,1])
         .map { taxa, cluster, sample, assembly, fastq_1, fastq_2, status, ref -> [sample, taxa, assembly, fastq_1, fastq_2, cluster, status, ref] }
         .set{ manifest }
-
     
     // SUBWORKFLOW: Call variants
     CALL_VARIANTS(

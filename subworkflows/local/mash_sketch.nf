@@ -7,7 +7,7 @@ include { MASH_TREE_CLUSTER       } from '../../modules/local/build-trees'
 
 
 def get_sketch ( taxa, cluster ) {
-    s_path = params.db.resolve(taxa).resolve("clusters").resolve(cluster).resolve("mash")
+    s_path = file(params.db).resolve(taxa).resolve("clusters").resolve(cluster).resolve("mash")
     sketch = s_path.resolve(s_path.list().sort().last())
     return sketch        
 }
