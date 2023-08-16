@@ -1,12 +1,12 @@
 
-process MASH_DIST_CLUSTER {
+process MASH_DIST {
 
     input:
-    tuple val(taxa), val(cluster), val(status), path(assembly), val(sample), path(sketch)
+    tuple val(taxa), val(cluster), val(status), val(sample), path(assembly), path(old_sketch)
     val timestamp
 
     output:
-    tuple val(taxa), val(cluster), path("*.msh"), path('mash-ava-cluster.tsv'), emit: results
+    tuple val(taxa), val(cluster), path("new_sketches/*.msh"), path('mash-ava-cluster.tsv'), emit: results
 
     when:
     task.ext.when == null || task.ext.when
@@ -14,30 +14,29 @@ process MASH_DIST_CLUSTER {
     shell:
     assembly_names = assembly.name
     '''
-    # rename assemblies for tree
+    # create sketches for each assembly
+    ## create table of sample names and their assemblies
     echo !{sample} | tr -d '[] ' | tr ',' '\n' > s_col
     echo !{assembly_names} | tr -d '[] ' | tr ',' '\n' > a_col
     paste -d "," s_col a_col > manifest.txt
     for row in $(cat manifest.txt)
     do
-        n=$(echo $row | tr ',' '\t' | cut -f 1)
+        # rename assemblies
+        s=$(echo $row | tr ',' '\t' | cut -f 1)
         a=$(echo $row | tr ',' '\t' | cut -f 2)
 
-        mv ${a} ${n}.fa
+        mv ${a} ${s}
+
+        # make sketch
+        mash sketch -o ${s} ${s}
     done
-    # create sketch for all assemblies
-    mash sketch -o new *.fa
-    # check if this is the first sketch
-    if [[ !{status} == "new" ]]
-    then 
-        # rename sketch file to current
-        mv new.msh 0000000000.msh
-    else
-        # add new sketch to the existing sketch
-        mash paste "!{timestamp}" !{mash_sketch} new.msh
-        rm !{mash_sketch} new.msh
-    fi
+    # copy all new sketches into a directory for publishing
+    mkdir new_sketches && cp *.msh new_sketches/
+    # move old sketches into current directory - if they exist - do not replace files
+    mv -n !{old_sketch}/*.msh ./ || true
+    # combine all sketches into single file
+    mash paste all *.msh
     # perform all-vs-all mash comparion
-    mash dist *.msh *.msh > mash-ava-cluster.tsv
+    mash dist all.msh all.msh > mash-ava-cluster.tsv
     '''
 }

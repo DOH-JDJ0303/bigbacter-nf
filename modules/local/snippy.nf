@@ -31,7 +31,8 @@ process SNIPPY_CORE {
     val timestamp
 
     output:
-    tuple val(taxa), val(cluster), path('core/*'), emit: results
+    tuple val(taxa), val(cluster), path('*.stats'), emit: stats
+    tuple val(taxa), val(cluster), path('core/*.full.aln'), emit: full_aln
 
     when:
     task.ext.when == null || task.ext.when
@@ -39,10 +40,8 @@ process SNIPPY_CORE {
     shell:
     args         = task.ext.args ?: ''
     new_files    = new_snippy.name
-    old_files    = old_snippy.name == "main.nf" ? '' : old_snippy.name
-    taxa_name    = taxa[0]
-    cluster_name = cluster[0]
-    prefix       = "${timestamp}-${taxa_name}-${cluster_name}-core"
+    old_files    = old_snippy.name
+    prefix       = "${timestamp}-${taxa}-${cluster}-core"
     '''
     # Extract files
     mkdir snippy_files
@@ -50,6 +49,7 @@ process SNIPPY_CORE {
     if [ -d !{old_files} ]
     then
         old_files=$(ls !{old_files} | grep "tar.gz")
+        mv -n !{old_files}/*.tar.gz ./
     else
         old_files=""
     fi
@@ -87,7 +87,5 @@ process SNIPPY_CORE {
             echo "All samples failed QC" > core/!{prefix}.fail
         fi
     fi
-    ## include !{prefix}.stats in output
-    mv !{prefix}.stats core/
     '''
 }

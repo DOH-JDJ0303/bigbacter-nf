@@ -19,7 +19,7 @@ def get_status ( taxa, cluster ) {
 
 include { ASSIGN_PP_CLUSTER } from '../../modules/local/assign-pp-cluster'
 
-workflow ASSIGN_CLUSTER {
+workflow CLUSTER {
     take:
     manifest   // channel: [ val(sample), val(taxa), file(assembly), file(fastq_1), file(fastq_2) ]
     timestamp  // channel: val(timestamp)
@@ -28,8 +28,9 @@ workflow ASSIGN_CLUSTER {
     // Determine the most recent PopPUNK database for each species and then group by species
 
     manifest
-        .map{ sample, taxa, assembly, fastq_1, fastq_2 -> [taxa, sample, assembly, get_ppdb(taxa)] }
+        .map { sample, taxa, assembly, fastq_1, fastq_2 -> [taxa, sample, assembly] }
         .groupTuple()
+        .map {taxa, sample, assembly -> [taxa, sample, assembly, get_ppdb(taxa)]}
         .set { pp_grouped }
 
     // Assign clusters
@@ -46,7 +47,7 @@ workflow ASSIGN_CLUSTER {
         .map { tuple(it.sample, it.taxa, it.cluster) }
         .map{ sample, taxa, cluster -> [sample, cluster, get_status(taxa, cluster)]}
         .set { sample_cluster_status }
-
+        
     emit:
     sample_cluster_status = sample_cluster_status         // channel: [ val(sample), val(cluster), val(status) ]
     new_pp_db = ASSIGN_PP_CLUSTER.out.new_pp_db           // channel: [ val(taxa), path(new_pp_db)]

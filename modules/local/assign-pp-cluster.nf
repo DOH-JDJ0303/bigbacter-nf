@@ -5,8 +5,8 @@ process ASSIGN_PP_CLUSTER {
     val timestamp
 
     output:
-    path 'pp_results.csv',                  emit: cluster_results
-    tuple val(taxa), path('*.tar.gz'), emit: new_pp_db
+    path 'pp_results.csv',                                  emit: cluster_results
+    tuple val(taxa), path('*.tar.gz', includeInputs: true), emit: new_pp_db
 
 
     when:
@@ -22,7 +22,6 @@ process ASSIGN_PP_CLUSTER {
     db_comp="!{db_name}"
     db=${db_comp%.tar.gz}
     tar -xzvf !{db} -C ./
-    rm !{db}
 
     #### SETTING UP FOR POPPUNK ####
     # create qfile for PopPUNK
@@ -39,25 +38,32 @@ process ASSIGN_PP_CLUSTER {
             echo ${line} | tr ',' '\t' >> qfile.txt
         fi
     done
-
     #### RUN POPPUNK ####
-    poppunk_assign \
-       !{args} \
-       --db ${db}  \
-       --query qfile.txt \
-       --output !{timestamp}
+    # check for new samples (qfile is not empty)
+    if [ -s qfile.txt ]
+    then
+        # run PopPUNK
+        poppunk_assign \
+        !{args} \
+        --db ${db}  \
+        --query qfile.txt \
+        --output !{timestamp}
+        
+        # compress new database (output)
+        tar -czvf !{timestamp}.tar.gz !{timestamp}
+        # remove old database tar files
+        rm -r ${db}*
+    fi
 
     #### COLLECTING CLUSTER INFO ####
     # get cluster info for each sample
     echo "sample,taxa,cluster" > pp_results.csv
     for s in $(cat ALL | tr ',' '\t' | cut -f 1)
     do
-        cat !{timestamp}/!{timestamp}_clusters.csv | tr ',' '\t' | awk '{printf($1 "\t%05d,", $2)}' | tr ',' '\n' | awk -v s=${s} -v t=!{taxa} '$1 == s {print $1,t,$2}' | tr ' ' ',' >> pp_results.csv
+        clust_file=$(ls */*_clusters.csv | grep -v "unword")
+        cat ${clust_file} | tr ',' '\t' | awk '{printf($1 "\t%05d,", $2)}' | tr ',' '\n' | awk -v s=${s} -v t=!{taxa} '$1 == s {print $1,t,$2}' | tr ' ' ',' >> pp_results.csv
     done
-
-    # compress new database
-    tar -czvf !{timestamp}.tar.gz !{timestamp}
-
+    
     #### VERSION INFO ####
     echo "hello" > versions.yml
     '''

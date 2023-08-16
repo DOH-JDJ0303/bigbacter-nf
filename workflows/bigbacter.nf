@@ -37,13 +37,15 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
-include { INPUT_CHECK       } from '../subworkflows/local/input_check'
-include { ASSIGN_CLUSTER    } from '../subworkflows/local/assign_cluster'
-include { PREPARE_CLUSTERS  } from '../subworkflows/local/prepare_clusters'
-include { CALL_VARIANTS     } from '../subworkflows/local/variant_calling'
-include { MASH_SKETCH       } from '../subworkflows/local/mash_sketch'
-include { SUMMARIZE_RESULTS } from '../subworkflows/local/summarize_results'
-include { PUSH_FILES        } from '../subworkflows/local/publish_new_db'
+include { INPUT_CHECK                     } from '../subworkflows/local/input_check'
+include { CLUSTER                         } from '../subworkflows/local/assign_cluster'
+include { VARIANTS                        } from '../subworkflows/local/call_variants'
+include { MASH                            } from '../subworkflows/local/mash'
+include { PUSH_FILES                      } from '../subworkflows/local/push_files'
+
+include { TREE_FIGURE as MASH_TREE_FIGURE } from '../modules/local/tree-figures'
+include { TREE_FIGURE as CORE_TREE_FIGURE } from '../modules/local/tree-figures'
+include { SUMMARY_TABLE                   } from '../modules/local/summary-tables'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -93,49 +95,62 @@ workflow BIGBACTER {
         .set { manifest }
 
     // SUBWORKFLOW: Assign PopPUNK clusters
-    ASSIGN_CLUSTER(
+    CLUSTER(
         manifest,
         timestamp
     )
 
     // Update manifest with cluster and status info
-    ASSIGN_CLUSTER.out.sample_cluster_status.map { sample, cluster, status -> [sample, cluster, status] }.set { sample_cluster_status }
+    CLUSTER.out.sample_cluster_status.map { sample, cluster, status -> [sample, cluster, status] }.set { sample_cluster_status }
     manifest.join(sample_cluster_status).set { manifest }
     
-    // Select reference genomes and update manifest
-    manifest
-        .map{ sample, taxa, assembly, fastq_1, fastq_2, cluster, status -> [taxa, cluster, assembly, status]}
-        .groupTuple(by: [0,1])
-        .map{ taxa, cluster, assembly, status -> [taxa, cluster, assembly, status.get(0)] }
-        .set { clust_grps }
-    
-    clust_grps.filter{ taxa, cluster, assembly, status -> status == "new" }.map{ taxa, cluster, assembly, status -> [taxa, cluster, assembly.get(0)] }.set{ clust_grp_new }
-    clust_grps.filter{ taxa, cluster, assembly, status -> status == "old" }.map{ taxa, cluster, assembly, status -> [taxa, cluster, file(params.db).resolve("clusters").resolve(cluster).resolve("ref/ref.fa") ] }.set{ clust_grps_old }
-    
-    clust_grp_new.concat(clust_grps_old).set{ clust_grps_refs }
-
-    manifest
-        .map { sample, taxa, assembly, fastq_1, fastq_2, cluster, status -> [taxa, cluster, sample, assembly, fastq_1, fastq_2, status] }
-        .join(clust_grps_refs, by: [0,1])
-        .map { taxa, cluster, sample, assembly, fastq_1, fastq_2, status, ref -> [sample, taxa, assembly, fastq_1, fastq_2, cluster, status, ref] }
-        .set{ manifest }
-    
     // SUBWORKFLOW: Call variants
-    CALL_VARIANTS(
+    VARIANTS(
         manifest, 
         timestamp
     )
 
     // SUBWORKFLOW: Mash comparisons
-    MASH_SKETCH(
+    MASH(
         manifest,
         timestamp
     )
 
-   // SUBWORKFLOW: Summarize results1
-    
-    // SUBWORKFLOW: Push new BigBacter database
+   // MODULE: Make Summary table
+   VARIANTS.out.core_stats.map{taxa, cluster, stats -> [taxa, cluster, stats]}.set{ core_stats }
+   VARIANTS.out.core_dist.map{taxa, cluster, dist -> [taxa, cluster, dist]}.join(core_stats, by: [0,1]).set{core_summary}
+   SUMMARY_TABLE(
+    core_summary,
+    timestamp
+   )
 
+   // MODULE: Make tree figures
+   CORE_TREE_FIGURE(
+    VARIANTS.out.core_tree,
+    timestamp
+   )
+
+   MASH_TREE_FIGURE(
+    MASH.out.mash_tree,
+    timestamp
+   )
+   
+   // SUBWORKFLOW: Push new BigBacter database
+   // Taxa-specific files
+   CLUSTER.out.new_pp_db.set{ taxa_files }
+   // Cluster-specific files
+   MASH.out.mash_files.map{ taxa, cluster, new_sketch, ava -> [taxa, cluster, new_sketch]}.set{ mash_files } 
+   VARIANTS.out.snp_files
+       .map{ taxa, cluster, ref, new_snippy, old_snippy -> [taxa, cluster, ref, new_snippy] }
+       .join(mash_files, by: [0,1])
+       .set{ cluster_files }
+
+   if(params.push){
+    PUSH_FILES(
+        cluster_files,
+        taxa_files
+        )
+    }
 
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
