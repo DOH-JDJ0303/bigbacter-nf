@@ -49,8 +49,6 @@ workflow VARIANTS {
     clust_grps.filter{ taxa, cluster, status, ref, new_snps -> status == "old" }.map{ taxa, cluster, status, ref, new_snps -> [taxa, cluster, ref, new_snps, file(params.db).resolve(taxa).resolve("clusters").resolve(cluster).resolve("snippy/")] }.set{ clust_grp_old }
 
     clust_grp_new.concat(clust_grp_old).set { snp_files }
-
-    snp_files.view()
     
     // Run Snippy-core
     SNIPPY_CORE(
@@ -66,7 +64,7 @@ workflow VARIANTS {
 
     // Create SNP tree
     IQTREE(
-        SNP_DISTS.out.result,
+        SNIPPY_CORE.out.full_aln,
         timestamp
     )
 

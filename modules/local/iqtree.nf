@@ -1,6 +1,6 @@
 process IQTREE {
     input:
-    tuple val(taxa), val(cluster), path(core)
+    tuple val(taxa), val(cluster), path(tree)
     val timestamp
 
     output:
@@ -14,6 +14,6 @@ process IQTREE {
     prefix       = "${timestamp}-${taxa}-${cluster}-core"
     '''
     # run IQTREE2
-    iqtree2 -s !{prefix}.aln !{args} || true
+    iqtree2 -s !{tree} !{args} || true
     '''
 }

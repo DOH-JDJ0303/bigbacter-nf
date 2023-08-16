@@ -47,7 +47,7 @@ workflow CLUSTER {
         .map { tuple(it.sample, it.taxa, it.cluster) }
         .map{ sample, taxa, cluster -> [sample, cluster, get_status(taxa, cluster)]}
         .set { sample_cluster_status }
-        
+    
     emit:
     sample_cluster_status = sample_cluster_status         // channel: [ val(sample), val(cluster), val(status) ]
     new_pp_db = ASSIGN_PP_CLUSTER.out.new_pp_db           // channel: [ val(taxa), path(new_pp_db)]
