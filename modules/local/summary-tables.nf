@@ -12,7 +12,6 @@ process SUMMARY_TABLE {
     task.ext.when == null || task.ext.when
 
     shell:
-    prefix = "${timestamp}-${taxa}-${cluster}-core"
     '''
     # create new sample list
     echo !{new_samples.join(",")} | tr ',' '\n' > new_samples.txt

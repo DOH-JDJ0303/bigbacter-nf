@@ -12,12 +12,11 @@ process MASH_DIST {
     task.ext.when == null || task.ext.when
 
     shell:
-    assembly_names = assembly.name
     '''
     # create sketches for each assembly
     ## create table of sample names and their assemblies
-    echo !{sample} | tr -d '[] ' | tr ',' '\n' > s_col
-    echo !{assembly_names} | tr -d '[] ' | tr ',' '\n' > a_col
+    echo !{sample.join(',')} | tr ',' '\n' > s_col
+    echo !{assembly.join(',')} | tr ',' '\n' > a_col
     paste -d "," s_col a_col > manifest.txt
     for row in $(cat manifest.txt)
     do

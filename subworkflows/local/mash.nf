@@ -23,7 +23,7 @@ workflow MASH {
     // Old samples
     clust_grps
         .filter{ taxa, cluster, status, sample, assembly -> status == "old" }
-        .map{ taxa, cluster, status, sample, assembly -> [taxa, cluster, status, sample, assembly, file(params.db).resolve(taxa).resolve("clusters").resolve(cluster).resolve("mash") ] }
+        .map{ taxa, cluster, status, sample, assembly -> [taxa, cluster, status, sample, assembly, file(file(params.db) / taxa / "clusters" / cluster / "mash", type: 'dir') ] }
         .concat(clust_grp_new)
         .set{mash_files}
 

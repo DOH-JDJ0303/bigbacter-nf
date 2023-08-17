@@ -14,7 +14,6 @@ process ASSIGN_PP_CLUSTER {
 
     shell:
     args           = task.ext.args ?: ''
-    assembly_names = assembly.name
     prefix         = taxa
     db_name        = db.name
     '''
@@ -25,8 +24,8 @@ process ASSIGN_PP_CLUSTER {
 
     #### SETTING UP FOR POPPUNK ####
     # create qfile for PopPUNK
-    echo !{sample} | tr -d '[] ' | tr ',' '\n' > s_col
-    echo !{assembly_names} | tr -d '[] ' | tr ',' '\n' > a_col
+    echo !{sample.join(',')} | tr ',' '\n' > s_col
+    echo !{assembly.join(',')} | tr ',' '\n' > a_col
     paste s_col a_col -d ',' > ALL
     # exclude samples that have already been run
     old_s=$(cat */*_clusters.csv | tr ',' '\t' | cut -f 1 | tr '\n\t\r$ ' '@')

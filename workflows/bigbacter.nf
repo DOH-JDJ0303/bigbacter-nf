@@ -46,6 +46,8 @@ include { PUSH_FILES                      } from '../subworkflows/local/push_fil
 include { TREE_FIGURE as MASH_TREE_FIGURE } from '../modules/local/tree-figures'
 include { TREE_FIGURE as CORE_TREE_FIGURE } from '../modules/local/tree-figures'
 include { SUMMARY_TABLE                   } from '../modules/local/summary-tables'
+include { COMBINED_SUMMARY                } from '../modules/local/combined-summary'
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -123,6 +125,10 @@ workflow BIGBACTER {
    SUMMARY_TABLE(
     core_summary,
     new_samples,
+    timestamp
+   )
+   COMBINED_SUMMARY(
+    SUMMARY_TABLE.out.summary.map{taxa, cluster, summary -> [summary]}.collect(),
     timestamp
    )
 

@@ -21,7 +21,7 @@ workflow VARIANTS {
         .set { clust_grps }
     
     clust_grps.filter{ taxa, cluster, assembly, status -> status == "new" }.map{ taxa, cluster, assembly, status -> [taxa, cluster, assembly.first()] }.set{ clust_grp_new }
-    clust_grps.filter{ taxa, cluster, assembly, status -> status == "old" }.map{ taxa, cluster, assembly, status -> [taxa, cluster, file(params.db).resolve(taxa).resolve("clusters").resolve(cluster).resolve("ref/ref.fa") ] }.set{ clust_grps_old }
+    clust_grps.filter{ taxa, cluster, assembly, status -> status == "old" }.map{ taxa, cluster, assembly, status -> [taxa, cluster, file(params.db) / taxa / "clusters" / cluster / "ref/ref.fa" ] }.set{ clust_grps_old }
     
     clust_grp_new.concat(clust_grps_old).set{ clust_grps_refs }
 
