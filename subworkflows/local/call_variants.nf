@@ -46,7 +46,7 @@ workflow VARIANTS {
         .set {clust_grps}
 
     clust_grps.filter{ taxa, cluster, status, ref, new_snps -> status == "new" }.map{ taxa, cluster, status, ref, new_snps -> [taxa, cluster, ref, new_snps, []] }.set{ clust_grp_new }
-    clust_grps.filter{ taxa, cluster, status, ref, new_snps -> status == "old" }.map{ taxa, cluster, status, ref, new_snps -> [taxa, cluster, ref, new_snps, file(params.db).resolve(taxa).resolve("clusters").resolve(cluster).resolve("snippy/")] }.set{ clust_grp_old }
+    clust_grps.filter{ taxa, cluster, status, ref, new_snps -> status == "old" }.map{ taxa, cluster, status, ref, new_snps -> [taxa, cluster, ref, new_snps, file(file(params.db) / taxa / "clusters" / cluster / "snippy", type: 'dir')] }.set{ clust_grp_old }
 
     clust_grp_new.concat(clust_grp_old).set { snp_files }
     

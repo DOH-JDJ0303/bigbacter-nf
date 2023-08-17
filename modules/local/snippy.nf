@@ -27,7 +27,7 @@ process SNIPPY_SINGLE {
 
 process SNIPPY_CORE {
     input:
-    tuple val(taxa), val(cluster), path(reference), path(new_snippy), path(old_snippy)
+    tuple val(taxa), val(cluster), path(reference), path("new_files/*"), path("old_files")
     val timestamp
 
     output:
@@ -39,31 +39,27 @@ process SNIPPY_CORE {
 
     shell:
     args         = task.ext.args ?: ''
-    new_files    = new_snippy.name
-    old_files    = old_snippy.name
     prefix       = "${timestamp}-${taxa}-${cluster}-core"
     '''
-    # Extract files
-    mkdir snippy_files
-    new_files=$(echo !{new_files} | tr -d '[] ' | tr ',' '\n' | grep "tar.gz")
-    if [ -d !{old_files} ]
-    then
-        old_files=$(ls !{old_files} | grep "tar.gz")
-        mv -n !{old_files}/*.tar.gz ./
-    else
-        old_files=""
-    fi
-    all_files="${new_files} ${old_files}"
-    for f in ${all_files}
+    # move files into common directory
+    # old files do not replace new files if the name is the same
+    mkdir all_files
+    mv new_files/*.tar.gz all_files/
+    mv -n old_files/*.tar.gz all_files/ || true
+    # extract files
+    cd all_files/
+    for f in $(ls *.tar.gz)
     do
         echo "Extracting ${f}"
-        tar -xzvhf ${f} -C snippy_files/
+        tar -xzvhf ${f} -C ./
     done
+    rm *.tar.gz
+    cd ../
 
     # run Snippy-core
     mkdir core
     cd core
-    snippy-core --prefix !{prefix} --ref ../!{reference} !{args} ../snippy_files/* || true
+    snippy-core --prefix !{prefix} --ref ../!{reference} !{args} ../all_files/* || true
     cd ../
 
     # gather core stats and re-run snippy-core if any samples failed QC
@@ -79,7 +75,7 @@ process SNIPPY_CORE {
         ## check if all samples failed QC
         if [[ ${n_pass} > 0 ]]
         then
-            pass=$(cat !{prefix}.stats | awk '$12 == "PASS" && $1 != "Reference" {print "../snippy_files/"$1}')
+            pass=$(cat !{prefix}.stats | awk '$12 == "PASS" && $1 != "Reference" {print "../all_files/"$1}')
             cd core/
             snippy-core --ref ../!{reference} !{args} ${pass} || true
             cd ../

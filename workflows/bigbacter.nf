@@ -119,8 +119,10 @@ workflow BIGBACTER {
    // MODULE: Make Summary table
    VARIANTS.out.core_stats.map{taxa, cluster, stats -> [taxa, cluster, stats]}.set{ core_stats }
    VARIANTS.out.core_dist.map{taxa, cluster, dist -> [taxa, cluster, dist]}.join(core_stats, by: [0,1]).set{core_summary}
+   manifest.map{sample, taxa, assembly, fastq_1, fastq_2, cluster, status -> [sample]}.collect().set{new_samples}
    SUMMARY_TABLE(
     core_summary,
+    new_samples,
     timestamp
    )
 

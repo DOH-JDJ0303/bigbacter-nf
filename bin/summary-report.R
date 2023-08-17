@@ -12,10 +12,17 @@ strong_linkage_cutoff <- args[4]
 intermediate_linkage_cutoff <- args[5]
 core_s_file <- args[6]
 core_d_file <- args[7]
+new_sample_list <- args[8]
   
 ### CORE SNPS ###
-# load core SNP stats
-core_s <- read_tsv(core_s_file)
+# load list of new samples
+new_samples <- read.table(new_sample_list) %>% .$V1
+# load core SNP stats and add status (new or old)
+core_s <- read_tsv(core_s_file) %>%
+  mutate(STATUS = "OLD")
+new_samples
+core_s$ID %in% new_samples
+core_s[core_s$ID %in% new_samples,]$STATUS <- "NEW"
 # determine number of samples in cluster (must pass all QC)
 n_iso <- core_s %>%
   subset(QUAL == "PASS" & ID != "Reference") %>%
@@ -79,7 +86,8 @@ summary <- core_s %>%
          CLUSTER = cluster,
          ISO_IN_CLUSTER = n_iso,
          ) %>%
-  select(ID, QUAL, RUN_ID, TAXA, CLUSTER, ISO_IN_CLUSTER, MEAN_SNP_DIST, MIN_SNP_DIST, MAX_SNP_DIST, STRONG_LINKAGE, INTER_LINKAGE, LENGTH, ALIGNED, UNALIGNED, VARIANT, HET, MASKED, LOWCOV, PER_GENFRAC, PER_LOWCOV, PER_HET)
+  select(ID, STATUS, QUAL, RUN_ID, TAXA, CLUSTER, ISO_IN_CLUSTER, MEAN_SNP_DIST, MIN_SNP_DIST, MAX_SNP_DIST, STRONG_LINKAGE, INTER_LINKAGE, LENGTH, ALIGNED, UNALIGNED, VARIANT, HET, MASKED, LOWCOV, PER_GENFRAC, PER_LOWCOV, PER_HET)
+
 ## make file name
 filename <- paste0(run_id,"-",taxa,"-",cluster,"-summary.tsv")
 ## write table

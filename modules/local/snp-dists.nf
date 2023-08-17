@@ -4,7 +4,7 @@ process SNP_DISTS {
     val timestamp
 
     output:
-    tuple val(taxa), val(cluster), path("${prefix}.*", includeInputs: true), emit: result
+    tuple val(taxa), val(cluster), path("*.dist"), emit: result
 
     when:
     task.ext.when == null || task.ext.when
