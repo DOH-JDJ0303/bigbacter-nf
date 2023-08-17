@@ -246,7 +246,31 @@
     "properties": {
         "db": {
             "type": "string",
-            "default": null
+            "default": "None"
+        },
+        "push": {
+            "type": "string",
+            "default": "true"
+        },
+        "min_genfrac": {
+            "type": "integer",
+            "default": 90
+        },
+        "max_lowcov": {
+            "type": "integer",
+            "default": 5
+        },
+        "max_het": {
+            "type": "integer",
+            "default": 1
+        },
+        "strong_link_cutoff": {
+            "type": "integer",
+            "default": 10
+        },
+        "inter_link_cutoff": {
+            "type": "integer",
+            "default": 50
         }
     }
 }
