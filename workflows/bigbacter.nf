@@ -156,7 +156,8 @@ workflow BIGBACTER {
    if(params.push){
     PUSH_FILES(
         cluster_files,
-        taxa_files
+        taxa_files,
+        COMBINED_SUMMARY.out.summary
         )
     }
 
