@@ -1,41 +1,46 @@
 #!/bin/bash
 
-species=$(echo $1 | tr ' ' '_')
-pp_db=${2%/}
-outdir=${1%/}
+db=${1%/}
+out=${2%/}
 
-# make directory structure
-bb_db=${outdir}/${species}
-mkdir -p \
-    ${species}/pp_db/ \
-    ${species}/mash
-
-# create initial taxa-level mash cache file
-echo 0000000000 > ${species}/mash/CACHE
+# extract files if needed
+if [[ ${db} == *.tar.bz2 ]]
+then
+    echo "Supplied database is bzip2 compressed:"
+    tar xjvf ${db}
+    db=${db%.tar.bz2}
+elif [[ ${db} == *.tar.gz ]]
+then
+    echo "Supplied database is gzip compressed:"
+    tar xzvf ${db}
+    db=${db%.tar.gz}
+else
+    echo "Supplied database is not compressed"
+fi
 
 # prepare the PopPunk database
-pp_db_name=${pp_db##*/}
-cd ${species}/pp_db/
-files=$(ls ${pp_db})
-for f in ${files}
+echo -e "\nPreparing the new database:"
+mkdir ${out}
+name=${db##*/}
+for f in $(ls ${db})
 do
-    cp ${pp_db}/${f} 0000000000/0000000000${f:${#pp_db_name}}
-done
-tar -czvf 0000000000.tar.gz 0000000000/
-cd ../../
-
-# set up cluster structure
-clusters=$(cat ${pp_db_path}/${pp_db}_clusters.csv | tr ',' '\t' | cut -f 2 | sort | uniq | grep -v "Cluster")
-for c in ${clusters}
-do
-    # make directories
-    mkdir -p /
-        ${bb_db}/clusters/${c}/snippy /
-        ${bb_db}/clusters/${c}/mash /
-        ${bb_db}/clusters/${c}/ref
-    
-    # create initial cluster-level mash cache file
-    echo 0000000000 > ${bb_db}/clusters/${c}/mash/CACHE
+    cur="${db}/${f}"
+    new="${out}/${out}${f:${#name}}"
+    echo "Renaming ${cur} to ${new}"
+    cp ${cur} ${new}
 done
 
+# check for common file missing from PopPUNK database and fix
+if [[ ! -f ${out}/${out}_graph.gt ]]
+then
+    if [[ -f ${out}/${out}.refs_graph.gt ]]
+    then
+        cp ${out}/${out}.refs_graph.gt ${out}/${out}_graph.gt
+    else
+        echo "PopPUNK database is missing required file: '${name}_graph.gt'"
+    fi
+fi
 
+# compress the new directory
+echo -e "\nCompressing the new database:"
+tar -czvf ${out}.tar.gz ${out}/

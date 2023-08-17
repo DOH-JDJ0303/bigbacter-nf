@@ -1,4 +1,5 @@
 process TIMESTAMP {
+    container = 'ubuntu:jammy'
 
     output:
     stdout
