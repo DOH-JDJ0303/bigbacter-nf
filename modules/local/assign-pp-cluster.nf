@@ -1,14 +1,12 @@
 process ASSIGN_PP_CLUSTER {
 
     input:
-    tuple path(db), val(samples), val(taxa), path(assemblies)
+    tuple val(taxa), val(sample), path(assembly), path(db)
     val timestamp
 
     output:
-    path 'pp_results.csv',                                emit: cluster_results
-    tuple val(taxa_name), path('*.tar.gz'), path('CACHE'), emit: new_pp_db
-    path 'cluster_status.csv',                            emit: cluster_status
-    path 'sample_status.csv',                             emit: sample_status
+    path 'pp_results.csv',                                  emit: cluster_results
+    tuple val(taxa), path('*.tar.gz', includeInputs: true), emit: new_pp_db
 
 
     when:
@@ -16,69 +14,55 @@ process ASSIGN_PP_CLUSTER {
 
     shell:
     args           = task.ext.args ?: ''
-    assembly_names = assemblies.name
-    taxa_name      = taxa[0]
-    prefix         = taxa[0]
+    prefix         = taxa
     db_name        = db.name
     '''
     # decompress database
     db_comp="!{db_name}"
     db=${db_comp%.tar.gz}
     tar -xzvf !{db} -C ./
-    rm !{db}
 
     #### SETTING UP FOR POPPUNK ####
     # create qfile for PopPUNK
-    echo !{samples} | tr -d '[] ' | tr ',' '\n' > s_col
-    echo !{assembly_names} | tr -d '[] ' | tr ',' '\n' > a_col
-    paste s_col a_col > qfile.txt
-
-    # create cache file for the new database
-    echo !{timestamp} > CACHE
-
+    echo !{sample.join(',')} | tr ',' '\n' > s_col
+    echo !{assembly.join(',')} | tr ',' '\n' > a_col
+    paste s_col a_col -d ',' > ALL
+    # exclude samples that have already been run
+    old_s=$(cat */*_clusters.csv | tr ',' '\t' | cut -f 1 | tr '\n\t\r$ ' '@')
+    for line in $(cat ALL)
+    do
+        s=$(echo ${line} | tr ',' '\t' | cut -f 1)
+        if [[ "${old_s}" != *"@${s}@"*  ]]
+        then
+            echo ${line} | tr ',' '\t' >> qfile.txt
+        fi
+    done
     #### RUN POPPUNK ####
-    poppunk_assign \
-       !{args} \
-       --db ${db}  \
-       --query qfile.txt \
-       --output !{timestamp}
+    # check for new samples (qfile is not empty)
+    if [ -s qfile.txt ]
+    then
+        # run PopPUNK
+        poppunk_assign \
+        !{args} \
+        --db ${db}  \
+        --query qfile.txt \
+        --output !{timestamp}
+        
+        # compress new database (output)
+        tar -czvf !{timestamp}.tar.gz !{timestamp}
+        # remove old database tar files
+        rm -r ${db}*
+    fi
 
     #### COLLECTING CLUSTER INFO ####
     # get cluster info for each sample
-    samp=$(cat qfile.txt | cut -f 1)
-    echo "sample,cluster,taxa_cluster" > pp_results.csv
-    for s in ${samp}
+    echo "sample,taxa,cluster" > pp_results.csv
+    for s in $(cat ALL | tr ',' '\t' | cut -f 1)
     do
-        cat !{timestamp}/!{timestamp}_clusters.csv | tr ',' '\t' | awk '{printf($1 "\t%05d,", $2)}' | tr ',' '\n' | awk -v s=${s} -v t=!{taxa_name} '$1 == s {print $1,$2,t"_"$2}' | tr ' ' ',' >> pp_results.csv
+        clust_file=$(ls */*_clusters.csv | grep -v "unword")
+        cat ${clust_file} | tr ',' '\t' | awk '{printf($1 "\t%05d,", $2)}' | tr ',' '\n' | awk -v s=${s} -v t=!{taxa} '$1 == s {print $1,t,$2}' | tr ' ' ',' >> pp_results.csv
     done
-
-    # define status for each cluster
-    echo "taxa_cluster,status" > cluster_status.csv
-    clusts=$(cat pp_results.csv | tr ',' '\t' | cut -f 2 | grep -v "cluster" | sort | uniq)
-    for c in ${clusts}
-    do
-        status=$(cat ${db}/${db}_clusters.csv | tr ',' '\t' | grep -v "Cluster" | awk -v c=${c} '$2 == c {print "old"}' | sort | uniq)
-        if [[ "${status}" == "old" ]]
-        then
-            echo "!{taxa_name}_${c},old" >> cluster_status.csv
-        else
-            echo "!{taxa_name}_${c},new" >> cluster_status.csv
-        fi
-    done
-    # create table of samples and their asociated status
-    echo "sample,status" > sample_status.csv
-    samp=$(cat pp_results.csv | tail -n +2)
-    for line in ${samp}
-    do
-        sample=$(echo ${line} | tr ',' '\t' | cut -f 1)
-        taxa_cluster=$(echo ${line} | tr ',' '\t' | cut -f 3)
-        status=$(cat cluster_status.csv | tr ',' '\t' | awk -v tc=${taxa_cluster} '$1 == tc {print $2}')
-        echo "${sample},${status}" >> sample_status.csv
-    done
-
-    # compress new database
-    tar -czvf !{timestamp}.tar.gz !{timestamp}
-
+    
     #### VERSION INFO ####
     echo "hello" > versions.yml
     '''

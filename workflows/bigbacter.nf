@@ -37,13 +37,18 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
-include { INPUT_CHECK       } from '../subworkflows/local/input_check'
-include { ASSIGN_CLUSTER    } from '../subworkflows/local/assign_cluster'
-include { PREPARE_CLUSTERS  } from '../subworkflows/local/prepare_clusters'
-include { CALL_VARIANTS     } from '../subworkflows/local/variant_calling'
-include { MASH_SKETCH       } from '../subworkflows/local/mash_sketch'
-include { SUMMARIZE_RESULTS } from '../subworkflows/local/summarize_results'
-include { PUSH_FILES        } from '../subworkflows/local/publish_new_db'
+include { INPUT_CHECK                     } from '../subworkflows/local/input_check'
+include { CLUSTER                         } from '../subworkflows/local/assign_cluster'
+include { VARIANTS                        } from '../subworkflows/local/call_variants'
+include { MASH                            } from '../subworkflows/local/mash'
+include { PUSH_FILES                      } from '../subworkflows/local/push_files'
+
+include { DIST_MAT                        } from '../modules/local/dist-mat'
+include { TREE_FIGURE as MASH_TREE_FIGURE } from '../modules/local/tree-figures'
+include { TREE_FIGURE as CORE_TREE_FIGURE } from '../modules/local/tree-figures'
+include { SUMMARY_TABLE                   } from '../modules/local/summary-tables'
+include { COMBINED_SUMMARY                } from '../modules/local/combined-summary'
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -89,114 +94,78 @@ workflow BIGBACTER {
     Channel
         .fromPath(params.input)
         .splitCsv(header: true)
+        .map { tuple(it.sample, it.taxa, it.assembly, it.fastq_1, it.fastq_2) }
         .set { manifest }
 
     // SUBWORKFLOW: Assign PopPUNK clusters
-    ASSIGN_CLUSTER(
+    CLUSTER(
         manifest,
         timestamp
     )
 
-    // SUBWORKFLOW: Prepapre clusters
-    PREPARE_CLUSTERS(
-        ASSIGN_CLUSTER.out.manifest,
-        timestamp
-    )
+    // Update manifest with cluster and status info
+    CLUSTER.out.sample_cluster_status.map { sample, cluster, status -> [sample, cluster, status] }.set { sample_cluster_status }
+    manifest.join(sample_cluster_status).set { manifest }
     
     // SUBWORKFLOW: Call variants
-    CALL_VARIANTS(
-        PREPARE_CLUSTERS.out.manifest, 
-        PREPARE_CLUSTERS.out.old_var_files,
+    VARIANTS(
+        manifest, 
         timestamp
     )
 
     // SUBWORKFLOW: Mash comparisons
-    MASH_SKETCH(
-        ASSIGN_CLUSTER.out.manifest,
+    MASH(
+        manifest,
         timestamp
     )
 
-   // SUBWORKFLOW: Summarize results
-   // Consolidate results
+   // MODULE: Make Summary table
+   VARIANTS.out.core_stats.map{taxa, cluster, stats -> [taxa, cluster, stats]}.set{ core_stats }
+   VARIANTS.out.core_dist.map{taxa, cluster, dist -> [taxa, cluster, dist]}.join(core_stats, by: [0,1]).set{core_summary}
+   manifest.map{sample, taxa, assembly, fastq_1, fastq_2, cluster, status -> [sample]}.collect().set{new_samples}
+   SUMMARY_TABLE(
+    core_summary,
+    new_samples,
+    timestamp
+   )
+   COMBINED_SUMMARY(
+    SUMMARY_TABLE.out.summary.map{taxa, cluster, summary -> [summary]}.collect(),
+    timestamp
+   )
+
+   // MODULE: Make tree figures and distance matrix
+   CORE_TREE_FIGURE(
+    VARIANTS.out.core_tree,
+    timestamp
+   )
+
+   MASH_TREE_FIGURE(
+    MASH.out.mash_tree,
+    timestamp
+   )
+   
+   VARIANTS.out.core_dist.map{taxa, cluster, dist -> [taxa, cluster, dist]}.join(VARIANTS.out.core_tree.map{ taxa, cluster, tree -> [taxa, cluster, tree]}, by: [0,1]).set{dist_mat_input}
+   DIST_MAT(
+    dist_mat_input,
+    timestamp
+   )
+   
+   // SUBWORKFLOW: Push new BigBacter database
    // Taxa-specific files
-   MASH_SKETCH
-        .out
-        .mash_all
-        .map { taxa, new_taxa_sketch, new_taxa_cache, ava_taxa -> [taxa, ava_taxa]}
-        .set { mash_taxa_results }
+   CLUSTER.out.new_pp_db.set{ taxa_files }
    // Cluster-specific files
-   MASH_SKETCH
-       .out
-       .mash_cluster
-       .map { taxa_cluster, new_cluster_sketch, new_cluster_cache, ava_cluster -> [taxa_cluster, ava_cluster] }
-       .set { mash_cluster_results }
-   CALL_VARIANTS
-        .out
-        .core_results
-        .map { taxa_cluster, taxa, cluster, core -> [taxa_cluster, taxa, cluster, core] }
-        .set { snippy_cluster_results }
-    snippy_cluster_results
-        .join(mash_cluster_results)
-        .set { all_cluster_results }
-    SUMMARIZE_RESULTS(
-        all_cluster_results, 
-        mash_taxa_results,
-        timestamp
-    )
-    
-    // SUBWORKFLOW: Push new BigBacter database
-    // Consolidate new database files
-    // Taxa-specific files
-    ASSIGN_CLUSTER
-        .out
-        .new_pp_db
-        .unique()
-        .map { taxa, new_pp_db, new_pp_cache -> [taxa, new_pp_db, new_pp_cache] }
-        .set { new_pp_db }
-    MASH_SKETCH
-        .out
-        .mash_all
-        .unique()
-        .map { taxa, new_taxa_sketch, new_taxa_cache, ava_taxa -> [taxa[0], new_taxa_sketch]}
-        .set { new_taxa_sketch }
-    SUMMARIZE_RESULTS
-        .out
-        .summary
-        .map { taxa_cluster, taxa, summary -> [taxa[0], summary] }
-        .set { dummy_taxa_summary }
-    new_pp_db
-        .join(new_taxa_sketch)
-        .join(dummy_taxa_summary)
-        .set { new_taxa_files }
+   MASH.out.mash_files.map{ taxa, cluster, new_sketch, ava -> [taxa, cluster, new_sketch]}.set{ mash_files } 
+   VARIANTS.out.snp_files
+       .map{ taxa, cluster, ref, new_snippy, old_snippy -> [taxa, cluster, ref, new_snippy] }
+       .join(mash_files, by: [0,1])
+       .set{ cluster_files }
 
-    // Cluster-specific files
-    CALL_VARIANTS
-        .out
-        .sample_results
-        .map { taxa_cluster, taxa, cluster, reference, new_snippy -> [taxa_cluster, taxa, cluster, reference, new_snippy] }
-        .groupTuple()
-        .map { taxa_cluster, taxa, cluster, reference, new_snippy -> [taxa_cluster, taxa[0], cluster[0], reference[0], new_snippy] }
-        .set { new_variant_files }
-    MASH_SKETCH
-        .out
-        .mash_cluster
-        .map { taxa_cluster, new_cluster_sketch, new_cluster_cache, ava_cluster -> [taxa_cluster, new_cluster_sketch, new_cluster_cache] }
-        .set { new_cluster_sketch }
-    SUMMARIZE_RESULTS
-        .out
-        .summary
-        .map { taxa_cluster, taxa, summary -> [taxa_cluster, summary] }
-        .set { dummy_cluster_summary }
-    new_variant_files
-        .join(new_cluster_sketch)
-        .join(dummy_cluster_summary)
-        .set { new_cluster_files }
-    
-    if(params.push){
-       PUSH_FILES(
-            new_cluster_files,
-            new_taxa_files
-       )
+   if(params.push){
+    PUSH_FILES(
+        cluster_files,
+        taxa_files,
+        COMBINED_SUMMARY.out.summary
+        )
     }
 
     CUSTOM_DUMPSOFTWAREVERSIONS (

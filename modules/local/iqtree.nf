@@ -1,10 +1,10 @@
-process SNP_DISTS {
+process IQTREE {
     input:
-    tuple val(taxa), val(cluster), path(aln)
+    tuple val(taxa), val(cluster), path(tree)
     val timestamp
 
     output:
-    tuple val(taxa), val(cluster), path("*.dist"), emit: result
+    tuple val(taxa), val(cluster), path("*.treefile"), emit: result, optional: true
 
     when:
     task.ext.when == null || task.ext.when
@@ -13,7 +13,7 @@ process SNP_DISTS {
     args         = task.ext.args ?: ''
     prefix       = "${timestamp}-${taxa}-${cluster}-core"
     '''
-    # run snp-dists
-    snp-dists !{args} !{aln} > !{prefix}.dist
+    # run IQTREE2
+    iqtree2 -s !{tree} !{args} || true
     '''
 }

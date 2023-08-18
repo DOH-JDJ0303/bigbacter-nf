@@ -1,10 +1,13 @@
 process PUSH_CLUSTER_FILES {
 
     input:
-    tuple val(taxa_cluster), val(taxa), val(cluster), path(reference), path(new_snippy), path(new_cluster_sketch), path(new_cluster_cache), val(summary)
+    tuple val(taxa), val(cluster), path(ref), path(new_snippy), path(sketch)
+    path summary // forces pipeline to wait till end
 
     output:
-    tuple path(reference), path(new_snippy), path(new_cluster_sketch), path(new_cluster_cache)
+    path ref
+    path new_snippy
+    path sketch
     
     when:
     task.ext.when == null || task.ext.when
@@ -17,10 +20,11 @@ process PUSH_CLUSTER_FILES {
 process PUSH_TAXA_FILES {
 
     input:
-    tuple val(taxa), path(new_pp_db), path(new_pp_cache), path(new_taxa_sketch), val(summary)
+    tuple val(taxa), path(new_pp_db)
+    path summary // forces pipeline to wait till end
 
     output:
-    tuple path(new_pp_db), path(new_pp_cache), path(new_taxa_sketch)
+    path new_pp_db
 
     when:
     task.ext.when == null || task.ext.when
