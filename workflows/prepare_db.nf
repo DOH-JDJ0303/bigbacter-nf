@@ -32,8 +32,7 @@ if (params.db) { ch_input = file(params.db) } else { exit 1, 'BigBacter database
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
-//include { TREE_FIGURE as MASH_TREE_FIGURE } from '../modules/local/tree-figures'
-
+include { PREPARE_DB_MOD } from '../modules/local/prepare-db'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -54,7 +53,7 @@ if (params.db) { ch_input = file(params.db) } else { exit 1, 'BigBacter database
 // Info required for completion email and summary
 def multiqc_report = []
 
-workflow BIGBACTER {
+workflow PREPARE_DB_WF {
 
     ch_versions = Channel.empty()
 
@@ -70,10 +69,13 @@ workflow BIGBACTER {
     Channel
         .fromPath(params.input)
         .splitCsv(header: true)
-        .map { tuple(it.taxa, it.pp_db) }
+        .map { tuple(it.taxa.replaceAll(/ /, "_"), it.pp_db) }
         .set { manifest }
 
-    
+    // MODULE: Prepare the BigBacter database
+    PREPARE_DB_MOD(
+        manifest
+    )
 
 }
 
