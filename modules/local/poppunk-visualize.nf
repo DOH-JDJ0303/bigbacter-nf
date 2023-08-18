@@ -1,7 +1,7 @@
 process POPPUNK_VISUAL {
 
     input:
-    tuple val(taxa), val(db)
+    tuple val(taxa), path(db)
     val timestamp
 
     output:
