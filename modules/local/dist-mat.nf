@@ -1,7 +1,7 @@
 process DIST_MAT {
 
     input:
-    tuple val(taxa), val(cluster), val(dist), path(tree)
+    tuple val(taxa), val(cluster), path(dist), path(tree)
     val timestamp
 
     output:
