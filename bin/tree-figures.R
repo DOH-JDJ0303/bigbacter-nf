@@ -2,6 +2,7 @@
 
 # load packahes
 library(tidyverse)
+library(phangorn)
 library(ggtree)
 
 # load arguments
@@ -10,10 +11,13 @@ args <- commandArgs(trailingOnly=TRUE)
 ## load tree
 tree_path <- args[1]
 tree <- read.tree(tree_path)
+# determine if tree can be rooted
+n_iso <- tree$tip.label %>% length()
+if(n_iso > 3){
+  tree <- midpoint(tree)
+}
 ## initial plot
 p_tree <- ggtree(tree)
-## get number of isolates
-n_iso <- p_tree$data$label %>% na.omit() %>% length()
 ## get sizing info
 size_tree <- function(plot){
   # extract plot data

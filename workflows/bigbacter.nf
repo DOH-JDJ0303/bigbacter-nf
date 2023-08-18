@@ -43,6 +43,7 @@ include { VARIANTS                        } from '../subworkflows/local/call_var
 include { MASH                            } from '../subworkflows/local/mash'
 include { PUSH_FILES                      } from '../subworkflows/local/push_files'
 
+include { DIST_MAT                        } from '../modules/local/dist-mat'
 include { TREE_FIGURE as MASH_TREE_FIGURE } from '../modules/local/tree-figures'
 include { TREE_FIGURE as CORE_TREE_FIGURE } from '../modules/local/tree-figures'
 include { SUMMARY_TABLE                   } from '../modules/local/summary-tables'
@@ -132,7 +133,7 @@ workflow BIGBACTER {
     timestamp
    )
 
-   // MODULE: Make tree figures
+   // MODULE: Make tree figures and distance matrix
    CORE_TREE_FIGURE(
     VARIANTS.out.core_tree,
     timestamp
@@ -140,6 +141,12 @@ workflow BIGBACTER {
 
    MASH_TREE_FIGURE(
     MASH.out.mash_tree,
+    timestamp
+   )
+   
+   VARIANTS.out.core_dist.map{taxa, cluster, dist -> [taxa, cluster, dist]}.join(VARIANTS.out.core_tree.map{ taxa, cluster, tree -> [taxa, cluster, tree]}, by: [0,1]).set{dist_mat_input}
+   DIST_MAT(
+    dist_mat_input,
     timestamp
    )
    

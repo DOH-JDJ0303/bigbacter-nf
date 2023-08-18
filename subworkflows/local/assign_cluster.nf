@@ -2,6 +2,11 @@
 // Assign PopPUNK clusters for each isolate
 //
 
+// Modules
+include { ASSIGN_PP_CLUSTER } from '../../modules/local/assign-pp-cluster'
+include { POPPUNK_VISUAL    } from '../../modules/local/poppunk-visualize'
+
+// Function for determining the most recent PopPUNK database
 def get_ppdb ( s ) {
     s_path = file(params.db).resolve(s)
     // get most recent PopPunk database
@@ -11,13 +16,12 @@ def get_ppdb ( s ) {
     return pp_db
 }
 
+// Function for determining if a cluster is new or old
 def get_status ( taxa, cluster ) {
     c_path = file(params.db).resolve(taxa).resolve("clusters").resolve(cluster)
     status = c_path.exists() ? "old" : "new"
     return status        
 }
-
-include { ASSIGN_PP_CLUSTER } from '../../modules/local/assign-pp-cluster'
 
 workflow CLUSTER {
     take:
@@ -26,16 +30,21 @@ workflow CLUSTER {
 
     main:
     // Determine the most recent PopPUNK database for each species and then group by species
-
     manifest
         .map { sample, taxa, assembly, fastq_1, fastq_2 -> [taxa, sample, assembly] }
         .groupTuple()
         .map {taxa, sample, assembly -> [taxa, sample, assembly, get_ppdb(taxa)]}
         .set { pp_grouped }
 
-    // Assign clusters
+    // MODULE: Assign PopPUNK clusters
     ASSIGN_PP_CLUSTER(
         pp_grouped,
+        timestamp
+    )
+
+    // MODULE: Create visuals for new PopPUNK database
+    POPPUNK_VISUAL(
+        ASSIGN_PP_CLUSTER.out.new_pp_db,
         timestamp
     )
 
