@@ -13,7 +13,7 @@ process COMBINED_SUMMARY {
     shell:
     '''
     header=$(sed -n 1p *.tsv) 
-    echo ${header} > COMBINED
+    echo ${header} | ' ' '\t' > COMBINED
     cat *.tsv | grep -v "${header}" >> COMBINED
     rm *.tsv
     mv COMBINED !{timestamp}-summary.tsv
