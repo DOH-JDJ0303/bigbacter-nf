@@ -12,9 +12,17 @@ process SNIPPY_SINGLE {
     shell:
     args = task.ext.args ?: ''
     '''
+    # check if the reference is compressed
+    ref=!{ref}
+    if [[ !{ref} == *.gz ]]
+    then
+        gzip -d !{ref}
+        ref=${ref%.gz}
+    fi
+
     # run Snippy
     snippy \
-        --reference !{ref} \
+        --reference ${ref} \
         --R1 !{fastq_1} \
         --R2 !{fastq_2} \
         --outdir ./!{sample} \
@@ -27,7 +35,7 @@ process SNIPPY_SINGLE {
 
 process SNIPPY_CORE {
     input:
-    tuple val(taxa), val(cluster), path(reference), path("new_files/*"), path("old_files")
+    tuple val(taxa), val(cluster), path(ref), path("new_files/*"), path("old_files")
     val timestamp
 
     output:
@@ -41,6 +49,14 @@ process SNIPPY_CORE {
     args         = task.ext.args ?: ''
     prefix       = "${timestamp}-${taxa}-${cluster}-core"
     '''
+    # check if the reference is compressed
+    ref=!{ref}
+    if [[ !{ref} == *.gz ]]
+    then
+        gzip -d !{ref}
+        ref=${ref%.gz}
+    fi
+
     # move files into common directory
     # old files do not replace new files if the name is the same
     mkdir all_files
@@ -59,7 +75,7 @@ process SNIPPY_CORE {
     # run Snippy-core
     mkdir core
     cd core
-    snippy-core --prefix !{prefix} --ref ../!{reference} !{args} ../all_files/* || true
+    snippy-core --prefix !{prefix} --ref ../${ref} !{args} ../all_files/* || true
     cd ../
 
     # gather core stats and re-run snippy-core if any samples failed QC
@@ -77,7 +93,7 @@ process SNIPPY_CORE {
         then
             pass=$(cat !{prefix}.stats | awk '$12 == "PASS" && $1 != "Reference" {print "../all_files/"$1}')
             cd core/
-            snippy-core --ref ../!{reference} !{args} ${pass} || true
+            snippy-core --ref ../${ref} !{args} ${pass} || true
             cd ../
         else
             echo "All samples failed QC" > core/!{prefix}.fail

@@ -5,16 +5,26 @@ process PUSH_CLUSTER_FILES {
     path summary // forces pipeline to wait till end
 
     output:
-    path ref
+    path 'ref.fa.gz'
     path new_snippy
     path sketch
     
     when:
     task.ext.when == null || task.ext.when
 
-    script:
-    """
-    """
+    shell:
+    '''
+    # clean up the reference assembly
+    ref=!{ref}
+    ## compress (if necessary)
+    if [[ !{ref} != *.gz ]]
+    then
+        gzip !{ref}
+        ref="${ref}.gz"
+    fi
+    ## rename
+    mv ${ref} ref.fa.gz
+    '''
 }
 
 process PUSH_TAXA_FILES {
