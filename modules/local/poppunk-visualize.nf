@@ -1,4 +1,6 @@
 process POPPUNK_VISUAL {
+    tag "${taxa}"
+    label 'process_medium'
 
     input:
     tuple val(taxa), path(db)

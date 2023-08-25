@@ -1,4 +1,7 @@
 process SNIPPY_SINGLE {
+    tag "${sample}"
+    label "process_high"
+
     input:
     tuple val(sample), val(taxa), val(assembly), path(fastq_1), path(fastq_2), val(cluster), val(status), path(ref)
     val timestamp
@@ -26,6 +29,7 @@ process SNIPPY_SINGLE {
         --R1 !{fastq_1} \
         --R2 !{fastq_2} \
         --outdir ./!{sample} \
+        --cpus !{task.cpus} \
         !{args}
 
     # compress output
@@ -34,6 +38,9 @@ process SNIPPY_SINGLE {
 }
 
 process SNIPPY_CORE {
+    tag "${taxa}_${cluster}"
+    label "process_medium"
+
     input:
     tuple val(taxa), val(cluster), path(ref), path("new_files/*"), path("old_files")
     val timestamp

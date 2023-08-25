@@ -1,4 +1,7 @@
 process IQTREE {
+    tag "${taxa}_${cluster}"
+    label 'process_high'
+    
     input:
     tuple val(taxa), val(cluster), path(tree)
     val timestamp

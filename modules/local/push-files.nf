@@ -1,4 +1,6 @@
 process PUSH_CLUSTER_FILES {
+    tag "${taxa}_${cluster}"
+    label 'process_low'
 
     input:
     tuple val(taxa), val(cluster), path(ref), path(new_snippy), path(sketch)
@@ -28,6 +30,8 @@ process PUSH_CLUSTER_FILES {
 }
 
 process PUSH_TAXA_FILES {
+    tag "${taxa}"
+    label 'process_low'
 
     input:
     tuple val(taxa), path(new_pp_db)

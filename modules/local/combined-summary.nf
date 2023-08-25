@@ -1,4 +1,6 @@
 process COMBINED_SUMMARY {
+    tag "${timestamp}"
+    label 'process_low'
 
     input:
     path summary_files
@@ -13,7 +15,7 @@ process COMBINED_SUMMARY {
     shell:
     '''
     header=$(sed -n 1p *.tsv) 
-    echo ${header} | ' ' '\t' > COMBINED
+    echo ${header} | tr ' ' '\t' > COMBINED
     cat *.tsv | grep -v "${header}" >> COMBINED
     rm *.tsv
     mv COMBINED !{timestamp}-summary.tsv

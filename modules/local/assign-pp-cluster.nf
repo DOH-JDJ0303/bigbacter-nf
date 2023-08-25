@@ -1,4 +1,6 @@
 process ASSIGN_PP_CLUSTER {
+    tag "${taxa}"
+    label 'process_high'
 
     input:
     tuple val(taxa), val(sample), path(assembly), path(db)
@@ -46,7 +48,8 @@ process ASSIGN_PP_CLUSTER {
         !{args} \
         --db ${db}  \
         --query qfile.txt \
-        --output !{timestamp}
+        --output !{timestamp} \
+        --threads !{task.cpus}
         
         # compress new database (output)
         tar -czvf !{timestamp}.tar.gz !{timestamp}

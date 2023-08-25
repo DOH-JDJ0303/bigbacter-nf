@@ -1,5 +1,7 @@
 
 process MASH_DIST {
+    tag "${taxa}_${cluster}"
+    label 'process_low'
 
     input:
     tuple val(taxa), val(cluster), val(status), val(sample), path(assembly), path(old_sketch)

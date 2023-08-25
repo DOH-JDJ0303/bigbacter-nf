@@ -1,4 +1,6 @@
 process SUMMARY_TABLE {
+    tag "${taxa}_${cluster}"
+    label 'process_low'
 
     input:
     tuple val(taxa), val(cluster), path(dist), path(stats)

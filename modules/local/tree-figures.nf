@@ -1,4 +1,6 @@
 process TREE_FIGURE {
+    tag "${taxa}_${cluster}"
+    label 'process_low'
 
     input:
     tuple val(taxa), val(cluster), path(tree)

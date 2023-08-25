@@ -1,4 +1,7 @@
 process SNP_DISTS {
+    tag "${taxa}_${cluster}"
+    label 'process_low'
+    
     input:
     tuple val(taxa), val(cluster), path(aln)
     val timestamp

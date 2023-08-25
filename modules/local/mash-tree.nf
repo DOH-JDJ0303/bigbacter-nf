@@ -1,4 +1,6 @@
 process MASH_TREE {
+    tag "${taxa}_${cluster}"
+    label 'process_low'
 
     input:
     tuple val(taxa), val(cluster), val(new_sketch), path(ava_cluster)
