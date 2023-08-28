@@ -8,13 +8,14 @@ process TREE_FIGURE {
 
     output:
     path "*.jpg*"
+    path "corrected.nwk", optional: true
 
     when:
     task.ext.when == null || task.ext.when
 
     shell:
-    prefix = "${timestamp}-${taxa}-${cluster}-core"
+    prefix = "${timestamp}-${taxa}-${cluster}"
     '''
-    tree-figures.R *.treefile
+    tree-figures.R !{tree}
     '''
 }

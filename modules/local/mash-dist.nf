@@ -8,7 +8,7 @@ process MASH_DIST {
     val timestamp
 
     output:
-    tuple val(taxa), val(cluster), path("new_sketches/*.msh"), path('mash-ava-cluster.tsv'), emit: results
+    tuple val(taxa), val(cluster), path("*.msh"), path('mash-ava-cluster.tsv'), emit: results
     path 'versions.yml',                                                                     emit: versions
 
     when:
@@ -32,14 +32,13 @@ process MASH_DIST {
         # make sketch
         mash sketch -o ${s} ${s}
     done
-    # copy all new sketches into a directory for publishing
-    mkdir new_sketches && cp *.msh new_sketches/
-    # move old sketches into current directory - if they exist - do not replace files
+    # move old sketches into working directory - if they exist - do not replace new sketches
     mv -n !{old_sketch}/*.msh ./ || true
-    # combine all sketches into single file
+    # combine all sketches into single file & perform all-vs-all comparison
     mash paste all *.msh
-    # perform all-vs-all mash comparion
     mash dist all.msh all.msh > mash-ava-cluster.tsv
+    # remove all.msh for publishing
+    rm all.msh
 
     # version info
     echo "!{task.process}:\n    mash: $(mash --version | tr -d '\t\n\r ')" > versions.yml

@@ -13,6 +13,11 @@ tree_path <- args[1]
 tree <- read.tree(tree_path)
 # clean up sample names
 tree$tip.label <- str_remove_all(tree$tip.label, pattern = "'")
+# set negative branch lengths to zero
+if(sum(tree$edge.length < 0) > 0){
+  tree$edge.length[tree$edge.length < 0] <- 0
+  write.tree(tree, "corrected.nwk")
+}
 # determine if tree can be rooted
 n_iso <- tree$tip.label %>% length()
 if(n_iso > 3){

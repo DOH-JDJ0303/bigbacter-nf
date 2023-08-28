@@ -22,7 +22,7 @@ process RAPIDNJ {
 
     script:
     def args = task.ext.args ?: ''
-    prefix   = "${timestamp}-${taxa}-${cluster}-core"
+    prefix   = "${timestamp}-${taxa}-${cluster}"
     """
     python \\
         -c 'from Bio import SeqIO; SeqIO.convert("$aln", "fasta", "alignment.sth", "stockholm")'
@@ -32,7 +32,7 @@ process RAPIDNJ {
         $args \\
         -i sth \\
         -c $task.cpus \\
-        -x ${aln}.treefile
+        -x ${prefix}.treefile
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

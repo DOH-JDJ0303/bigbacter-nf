@@ -53,9 +53,9 @@ process SNIPPY_CORE {
     val timestamp
 
     output:
-    tuple val(taxa), val(cluster), path('*.stats'),         emit: stats
-    tuple val(taxa), val(cluster), path('core/*.full.aln'), emit: full_aln
-    path 'versions.yml',                                    emit: versions
+    tuple val(taxa), val(cluster), path('*.stats'),    emit: stats
+    tuple val(taxa), val(cluster), path('*.full.aln'), emit: full_aln
+    path 'versions.yml',                               emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -111,9 +111,12 @@ process SNIPPY_CORE {
             snippy-core --ref ../${ref} !{args} ${pass} || true
             cd ../
         else
-            echo "All samples failed QC" > core/!{prefix}.fail
+            echo "All samples failed QC"
         fi
     fi
+
+    # move full alignment to simplify publish
+    mv core/*.full.aln ./
 
     #### VERSION INFO ####
     cat <<-END_VERSIONS > versions.yml

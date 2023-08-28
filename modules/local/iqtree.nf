@@ -15,7 +15,7 @@ process IQTREE {
 
     shell:
     args         = task.ext.args ?: ''
-    prefix       = "${timestamp}-${taxa}-${cluster}-core"
+    prefix       = "${timestamp}-${taxa}-${cluster}"
     '''
     # run IQTREE2
     iqtree2 -s !{aln} !{args} || true

@@ -40,6 +40,8 @@ workflow MASH {
         timestamp
     )
 
+    MASH_DIST.out.results
+
     emit:
     mash_files = MASH_DIST.out.results // channel: [val(taxa), val(cluster), new_sketch, ava]
     mash_tree  = MASH_TREE.out.results // channel: [val(taxa), val(cluster), path(tree)]
