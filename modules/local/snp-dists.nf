@@ -8,6 +8,7 @@ process SNP_DISTS {
 
     output:
     tuple val(taxa), val(cluster), path("*.dist"), emit: result
+    path 'versions.yml',                           emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -18,5 +19,11 @@ process SNP_DISTS {
     '''
     # run snp-dists
     snp-dists !{args} !{aln} > !{prefix}.dist
+
+    #### VERSION INFO ####
+    cat <<-END_VERSIONS > versions.yml
+    "!{task.process}":
+        snp-dists: $(snp-dists -v | cut -f 2 -d ' ')
+    END_VERSIONS
     '''
 }

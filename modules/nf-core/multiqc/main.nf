@@ -11,6 +11,7 @@ process MULTIQC {
     path(multiqc_config)
     path(extra_multiqc_config)
     path(multiqc_logo)
+    val timestamp
 
     output:
     path "*multiqc_report.html", emit: report

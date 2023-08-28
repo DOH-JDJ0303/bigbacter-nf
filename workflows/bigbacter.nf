@@ -102,6 +102,7 @@ workflow BIGBACTER {
         manifest,
         timestamp
     )
+    ch_versions = ch_versions.mix(CLUSTER.out.versions)
 
     // Update manifest with cluster and status info
     CLUSTER.out.sample_cluster_status.map { sample, cluster, status -> [sample, cluster, status] }.set { sample_cluster_status }
@@ -112,12 +113,14 @@ workflow BIGBACTER {
         manifest, 
         timestamp
     )
+    ch_versions = ch_versions.mix(VARIANTS.out.versions)
 
     // SUBWORKFLOW: Mash comparisons
     MASH(
         manifest,
         timestamp
     )
+    ch_versions = ch_versions.mix(MASH.out.versions)
 
    // MODULE: Make Summary table
    VARIANTS.out.core_stats.map{taxa, cluster, stats -> [taxa, cluster, stats]}.set{ core_stats }
@@ -169,7 +172,8 @@ workflow BIGBACTER {
     }
 
     CUSTOM_DUMPSOFTWAREVERSIONS (
-        ch_versions.unique().collectFile(name: 'collated_versions.yml')
+        ch_versions.unique().collectFile(name: 'collated_versions.yml'),
+        timestamp
     )
 
     //
@@ -181,19 +185,19 @@ workflow BIGBACTER {
     methods_description    = WorkflowBigbacter.methodsDescriptionText(workflow, ch_multiqc_custom_methods_description)
     ch_methods_description = Channel.value(methods_description)
 
-    //ch_multiqc_files = Channel.empty()
-    //ch_multiqc_files = ch_multiqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
-    //ch_multiqc_files = ch_multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml'))
-    //ch_multiqc_files = ch_multiqc_files.mix(CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect())
-    //ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = Channel.empty()
+    ch_multiqc_files = ch_multiqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
+    ch_multiqc_files = ch_multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml'))
+    ch_multiqc_files = ch_multiqc_files.mix(CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect())
 
-    //MULTIQC (
-    //    ch_multiqc_files.collect(),
-    //    ch_multiqc_config.toList(),
-    //    ch_multiqc_custom_config.toList(),
-    //    ch_multiqc_logo.toList()
-    //)
-    //multiqc_report = MULTIQC.out.report.toList()
+    MULTIQC (
+        ch_multiqc_files.collect(),
+        ch_multiqc_config.toList(),
+        ch_multiqc_custom_config.toList(),
+        ch_multiqc_logo.toList(),
+        timestamp
+    )
+    multiqc_report = MULTIQC.out.report.toList()
 }
 
 /*

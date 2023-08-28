@@ -9,6 +9,7 @@ process ASSIGN_PP_CLUSTER {
     output:
     path 'pp_results.csv',                                  emit: cluster_results
     tuple val(taxa), path('*.tar.gz', includeInputs: true), emit: new_pp_db
+    path 'versions.yml',                                    emit: versions
 
 
     when:
@@ -66,7 +67,7 @@ process ASSIGN_PP_CLUSTER {
         cat ${clust_file} | tr ',' '\t' | awk '{printf($1 "\t%05d,", $2)}' | tr ',' '\n' | awk -v s=${s} -v t=!{taxa} '$1 == s {print $1,t,$2}' | tr ' ' ',' >> pp_results.csv
     done
     
-    #### VERSION INFO ####
-    echo "hello" > versions.yml
+    # version info
+    echo "!{task.process}:\n    poppunk: $(poppunk_assign --version | cut -f 2 -d ' ' | tr -d '\n\r\t ')" > versions.yml
     '''
 }

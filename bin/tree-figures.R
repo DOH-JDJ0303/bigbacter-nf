@@ -11,6 +11,8 @@ args <- commandArgs(trailingOnly=TRUE)
 ## load tree
 tree_path <- args[1]
 tree <- read.tree(tree_path)
+# clean up sample names
+tree$tip.label <- str_remove_all(tree$tip.label, pattern = "'")
 # determine if tree can be rooted
 n_iso <- tree$tip.label %>% length()
 if(n_iso > 3){

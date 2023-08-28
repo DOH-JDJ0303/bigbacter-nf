@@ -9,6 +9,7 @@ process MASH_DIST {
 
     output:
     tuple val(taxa), val(cluster), path("new_sketches/*.msh"), path('mash-ava-cluster.tsv'), emit: results
+    path 'versions.yml',                                                                     emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -39,5 +40,8 @@ process MASH_DIST {
     mash paste all *.msh
     # perform all-vs-all mash comparion
     mash dist all.msh all.msh > mash-ava-cluster.tsv
+
+    # version info
+    echo "!{task.process}:\n    mash: $(mash --version | tr -d '\t\n\r ')" > versions.yml
     '''
 }

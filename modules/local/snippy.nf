@@ -8,6 +8,7 @@ process SNIPPY_SINGLE {
 
     output:
     tuple val(sample), path('*.tar.gz'), emit: results
+    path 'versions.yml',                 emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -32,11 +33,14 @@ process SNIPPY_SINGLE {
         --cpus !{task.cpus} \
         !{args}
 
-    # gather stats
-    snp-stats.sh !{sample} 
-
     # compress output
     tar -czvf !{sample}.tar.gz !{sample}/
+
+    #### VERSION INFO ####
+    cat <<-END_VERSIONS > versions.yml
+    "!{task.process}":
+        snippy: $(snippy --version | cut -f 2 -d ' ')
+    END_VERSIONS
     '''
 }
 
@@ -49,8 +53,9 @@ process SNIPPY_CORE {
     val timestamp
 
     output:
-    tuple val(taxa), val(cluster), path('*.stats'), emit: stats
+    tuple val(taxa), val(cluster), path('*.stats'),         emit: stats
     tuple val(taxa), val(cluster), path('core/*.full.aln'), emit: full_aln
+    path 'versions.yml',                                    emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -109,5 +114,11 @@ process SNIPPY_CORE {
             echo "All samples failed QC" > core/!{prefix}.fail
         fi
     fi
+
+    #### VERSION INFO ####
+    cat <<-END_VERSIONS > versions.yml
+    "!{task.process}":
+        snippy: $(snippy --version | cut -f 2 -d ' ')
+    END_VERSIONS
     '''
 }

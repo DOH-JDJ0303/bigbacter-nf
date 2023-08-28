@@ -12,6 +12,8 @@ tree_file <- args[2]
 ## load tree
 tree_path <- args[1]
 tree <- read.tree(tree_file)
+# clean up sample names
+tree$tip.label <- str_remove_all(tree$tip.label, pattern = "'")
 # determine if tree can be rooted
 n_iso <- tree$tip.label %>% length()
 if(n_iso > 3){

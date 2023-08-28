@@ -9,6 +9,7 @@ process CUSTOM_DUMPSOFTWAREVERSIONS {
 
     input:
     path versions
+    val timestamp
 
     output:
     path "software_versions.yml"    , emit: yml

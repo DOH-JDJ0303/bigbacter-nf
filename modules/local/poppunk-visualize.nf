@@ -7,7 +7,8 @@ process POPPUNK_VISUAL {
     val timestamp
 
     output:
-    path "results/*", emit: results
+    path "results/*",    emit: results
+    path 'versions.yml', emit: versions
 
 
     when:
@@ -29,7 +30,7 @@ process POPPUNK_VISUAL {
     # move files to simplify output
     mkdir results && mv !{prefix}-poppunk/* results/
 
-    #### VERSION INFO ####
-    echo "hello" > versions.yml
+    # version info
+    echo "!{task.process}:\n    poppunk: $(poppunk_assign --version | cut -f 2 -d ' ' | tr -d '\n\r\t ')" > versions.yml
     '''
 }

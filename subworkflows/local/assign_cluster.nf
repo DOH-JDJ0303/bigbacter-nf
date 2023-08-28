@@ -29,6 +29,7 @@ workflow CLUSTER {
     timestamp  // channel: val(timestamp)
 
     main:
+    ch_versions = Channel.empty()
     // Determine the most recent PopPUNK database for each species and then group by species
     manifest
         .map { sample, taxa, assembly, fastq_1, fastq_2 -> [taxa, sample, assembly] }
@@ -41,12 +42,14 @@ workflow CLUSTER {
         pp_grouped,
         timestamp
     )
+    ch_versions = ch_versions.mix(ASSIGN_PP_CLUSTER.out.versions)
 
     // MODULE: Create visuals for new PopPUNK database
     POPPUNK_VISUAL(
         ASSIGN_PP_CLUSTER.out.new_pp_db,
         timestamp
     )
+    ch_versions = ch_versions.mix(POPPUNK_VISUAL.out.versions)
 
     // Assign clusters as new and old   
     ASSIGN_PP_CLUSTER
@@ -58,6 +61,7 @@ workflow CLUSTER {
         .set { sample_cluster_status }
     
     emit:
-    sample_cluster_status = sample_cluster_status         // channel: [ val(sample), val(cluster), val(status) ]
-    new_pp_db = ASSIGN_PP_CLUSTER.out.new_pp_db           // channel: [ val(taxa), path(new_pp_db)]
+    sample_cluster_status = sample_cluster_status           // channel: [ val(sample), val(cluster), val(status) ]
+    new_pp_db             = ASSIGN_PP_CLUSTER.out.new_pp_db // channel: [ val(taxa), path(new_pp_db)]
+    versions              = ch_versions                     // channel: [ versions.yml ]
 }

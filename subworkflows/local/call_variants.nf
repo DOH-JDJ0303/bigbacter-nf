@@ -6,6 +6,15 @@ include { SNIPPY_SINGLE } from '../../modules/local/snippy'
 include { SNIPPY_CORE   } from '../../modules/local/snippy'
 include { SNP_DISTS     } from '../../modules/local/snp-dists'
 include { IQTREE        } from '../../modules/local/iqtree'
+include { RAPIDNJ       } from '../../modules/nf-core/rapidnj/main'
+
+
+// Function for counting the number of samples in an alignment file
+def count_alignments ( aln_file ) {
+    count = 0
+    total = aln_file.eachLine{ line -> count+= line.count('>')}
+    return total
+}
 
 workflow VARIANTS {
     take:
@@ -13,6 +22,7 @@ workflow VARIANTS {
     timestamp     // channel: val(timestamp)
 
     main:
+    ch_versions = Channel.empty()
     // Select reference genomes and update manifest
     manifest
         .map{ sample, taxa, assembly, fastq_1, fastq_2, cluster, status -> [taxa, cluster, assembly, status]}
@@ -21,7 +31,7 @@ workflow VARIANTS {
         .set { clust_grps }
     
     clust_grps.filter{ taxa, cluster, assembly, status -> status == "new" }.map{ taxa, cluster, assembly, status -> [taxa, cluster, assembly.first()] }.set{ clust_grp_new }
-    clust_grps.filter{ taxa, cluster, assembly, status -> status == "old" }.map{ taxa, cluster, assembly, status -> [taxa, cluster, file(params.db) / taxa / "clusters" / cluster / "ref/ref.fa" ] }.set{ clust_grps_old }
+    clust_grps.filter{ taxa, cluster, assembly, status -> status == "old" }.map{ taxa, cluster, assembly, status -> [taxa, cluster, file(params.db) / taxa / "clusters" / cluster / "ref/ref.fa.gz" ] }.set{ clust_grps_old }
     
     clust_grp_new.concat(clust_grps_old).set{ clust_grps_refs }
 
@@ -36,6 +46,7 @@ workflow VARIANTS {
         manifest,
         timestamp
     )
+    ch_versions = ch_versions.mix(SNIPPY_SINGLE.out.versions)
 
     // Add previous SNP files to old clusters
     manifest
@@ -55,23 +66,38 @@ workflow VARIANTS {
         snp_files,
         timestamp
     )
+    ch_versions = ch_versions.mix(SNIPPY_CORE.out.versions)
 
     // Create SNP distance matrix
     SNP_DISTS(
         SNIPPY_CORE.out.full_aln,
         timestamp
     )
+    ch_versions = ch_versions.mix(SNP_DISTS.out.versions)
 
     // Create SNP tree
+    // count the number of samples in each alignment
+    SNIPPY_CORE.out.full_aln.map{ taxa, cluster, aln -> [taxa, cluster, aln, count_alignments(aln)] }.set{ aln_w_count }
+    // MODULE: Run IQTREE - only performed for clusters with fewer than defined 'max_ml'
     IQTREE(
-        SNIPPY_CORE.out.full_aln,
+        aln_w_count.filter{taxa, cluster, aln, count -> count <= params.max_ml }.map{taxa, cluster, aln, count -> [taxa, cluster, aln]},
         timestamp
     )
+    ch_versions = ch_versions.mix(IQTREE.out.versions)
+    // MODULE: Run Rapidnj - only performed for clusters with more than the defined 'max_ml'
+    RAPIDNJ(
+        aln_w_count.filter{taxa, cluster, aln, count -> count > params.max_ml }.map{taxa, cluster, aln, count -> [taxa, cluster, aln]},
+        timestamp
+    )
+    ch_versions = ch_versions.mix(RAPIDNJ.out.versions)
+    // Combine the outputs of IQTREE and RAPIDNJ
+    IQTREE.out.result.concat(RAPIDNJ.out.result).set{core_tree}
 
     emit:
     snp_files  = snp_files                // channel: [taxa, cluster, ref, new_snippy, old_snippy]
     core_stats = SNIPPY_CORE.out.stats    // channel: [taxa, cluster, stats]
     core_aln   = SNIPPY_CORE.out.full_aln // channel: [taxa, cluster, aln]
     core_dist  = SNP_DISTS.out.result     // channel: [taxa, cluster, dist]
-    core_tree  = IQTREE.out.result        // channel: [taxa, cluster, tree]
+    core_tree  = core_tree                // channel: [taxa, cluster, tree]
+    versions   = ch_versions              // channel: [ versions.yml ]
 }

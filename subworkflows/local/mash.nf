@@ -11,6 +11,7 @@ workflow MASH {
     timestamp  // channel: val(timestamp)
 
     main:
+    ch_versions = Channel.empty()
     // Group samples by cluster
     manifest
         .map{ sample, taxa, assembly, fastq_1, fastq_2, cluster, status -> [taxa, cluster, status, sample, assembly] }
@@ -32,6 +33,7 @@ workflow MASH {
         mash_files,
         timestamp
     )
+    ch_versions = ch_versions.mix(MASH_DIST.out.versions)
     
     MASH_TREE(
         MASH_DIST.out.results,
@@ -41,4 +43,6 @@ workflow MASH {
     emit:
     mash_files = MASH_DIST.out.results // channel: [val(taxa), val(cluster), new_sketch, ava]
     mash_tree  = MASH_TREE.out.results // channel: [val(taxa), val(cluster), path(tree)]
+    versions   = ch_versions           // channel: [ versions.yml ]
+
 }

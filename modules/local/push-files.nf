@@ -24,8 +24,11 @@ process PUSH_CLUSTER_FILES {
         gzip !{ref}
         ref="${ref}.gz"
     fi
-    ## rename
-    mv ${ref} ref.fa.gz
+    ## rename (if necessary)
+    if [[ !{ref} != ref.fa.gz ]]
+    then
+        mv ${ref} ref.fa.gz
+    fi
     '''
 }
 
