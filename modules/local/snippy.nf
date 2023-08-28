@@ -32,6 +32,9 @@ process SNIPPY_SINGLE {
         --cpus !{task.cpus} \
         !{args}
 
+    # gather stats
+    snp-stats.sh !{sample} 
+
     # compress output
     tar -czvf !{sample}.tar.gz !{sample}/
     '''
@@ -88,7 +91,7 @@ process SNIPPY_CORE {
     # gather core stats and re-run snippy-core if any samples failed QC
     ## gather stats
     echo -e "$(head -n 1 core/!{prefix}.txt)\tPER_GENFRAC\tPER_LOWCOV\tPER_HET\tQUAL" > !{prefix}.stats
-    cat core/!{prefix}.txt | tail -n +2 | awk '{genfrac = 100*($3-$8)/($2-$7); plow = 100*$8/($2-$7); phet = 100*$6/($2-$7); print $0, genfrac, plow, phet}' | awk -v g="!{params.min_genfrac}" -v h="!{params.max_het}" -v l="!{params.max_lowcov}" '{if($9 < g || $10 > l || $11 > h) print $0, "FAIL"; else print $0, "PASS"}' | tr ' ' '\t' >> !{prefix}.stats
+    cat core/!{prefix}.txt | tail -n +2 | awk '{genfrac = 100*$3/$2; plow = 100*$8/$2; phet = 100*$6/$2; print $0, genfrac, plow, phet}' | awk -v g="!{params.min_genfrac}" -v h="!{params.max_het}" -v l="!{params.max_lowcov}" '{if($9 < g || $10 > l || $11 > h) print $0, "FAIL"; else print $0, "PASS"}' | tr ' ' '\t' >> !{prefix}.stats
     n_fail=$(cat !{prefix}.stats | awk '$12 == "FAIL" {print $0}' | wc -l)
     n_pass=$(cat !{prefix}.stats | awk '$12 == "PASS" {print $0}' | wc -l)
     if [[ ${n_fail} > 0 ]]
