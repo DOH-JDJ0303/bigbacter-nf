@@ -12,7 +12,8 @@
             "description": "Define where the pipeline should find input data and save output data.",
             "required": [
                 "input",
-                "outdir"
+                "outdir",
+                "db"
             ],
             "properties": {
                 "input": {
@@ -33,19 +34,8 @@
                 },
                 "db": {
                     "type": "string",
-                    "default": "None"
-                },
-                "email": {
-                    "type": "string",
-                    "description": "Email address for completion summary.",
-                    "fa_icon": "fas fa-envelope",
-                    "help_text": "Set this parameter to your e-mail address to get a summary e-mail with details of the run sent to you when the workflow exits. If set in your user config file (`~/.nextflow/config`) then you don't need to specify this on the command line for every run.",
-                    "pattern": "^([a-zA-Z0-9_\\-\\.]+)@([a-zA-Z0-9_\\-\\.]+)\\.([a-zA-Z]{2,5})$"
-                },
-                "multiqc_title": {
-                    "type": "string",
-                    "description": "MultiQC report title. Printed as page header, used for filename if not otherwise specified.",
-                    "fa_icon": "fas fa-file-signature"
+                    "description": "Path to the BigBacter database.",
+                    "fa_icon": "fas fa-folder-open"
                 }
             }
         },
@@ -57,25 +47,48 @@
             "properties": {
                 "push": {
                     "type": "boolean",
-                    "default": true
+                    "default": true,
+                    "fa_icon": "fas fa-file-export",
+                    "description": "Whether or not to save new database files."
+                },
+                "min_genfrac": {
+                    "type": "integer",
+                    "default": 90,
+                    "description": "Minimum genome fraction for a sample to be included in the core SNP analysis",
+                    "fa_icon": "fas fa-chart-pie"
                 },
                 "max_het": {
                     "type": "integer",
-                    "default": 1
+                    "default": 1,
+                    "description": "Maximum number of heterozygous sites for a sample to be included in the core SNP analysis",
+                    "fa_icon": "fas fa-chart-pie"
                 },
                 "max_lowcov": {
                     "type": "integer",
-                    "default": 5
+                    "default": 5,
+                    "description": "Maximum number of low coverage sites for a sample to be included in the core SNP analysis",
+                    "fa_icon": "fas fa-chart-pie"
                 },
                 "strong_link_cutoff": {
                     "type": "integer",
-                    "default": 10
+                    "default": 10,
+                    "description": "SNP distance threshold used to identity strong genomic linkages",
+                    "fa_icon": "fas fa-link"
                 },
                 "inter_link_cutoff": {
                     "type": "integer",
-                    "default": 50
+                    "default": 50,
+                    "description": "SNP distance threshold used to identity intermediate genomic linkages",
+                    "fa_icon": "fas fa-link"
+                },
+                "max_ml": {
+                    "type": "integer",
+                    "default": 100,
+                    "description": "Maximum number of samples in a cluster for IQTREE to be run. This is to avoid extremely long analyses due to large trees. If the number of samples in a cluster exceeds this amount, Rapidnj will be used instead.",
+                    "fa_icon": "fas fa-tree"
                 }
-            }
+            },
+            "fa_icon": "fas fa-terminal"
         },
         "institutional_config_options": {
             "title": "Institutional config options",
@@ -167,6 +180,18 @@
             "description": "Less common options for the pipeline, typically set in a config file.",
             "help_text": "These options are common to all nf-core pipelines and allow you to customise some of the core preferences for how the pipeline runs.\n\nTypically these options would be set in a Nextflow config file loaded for all pipeline runs, such as `~/.nextflow/config`.",
             "properties": {
+                "multiqc_title": {
+                    "type": "string",
+                    "description": "MultiQC report title. Printed as page header, used for filename if not otherwise specified.",
+                    "fa_icon": "fas fa-file-signature"
+                },
+                "email": {
+                    "type": "string",
+                    "description": "Email address for completion summary.",
+                    "fa_icon": "fas fa-envelope",
+                    "help_text": "Set this parameter to your e-mail address to get a summary e-mail with details of the run sent to you when the workflow exits. If set in your user config file (`~/.nextflow/config`) then you don't need to specify this on the command line for every run.",
+                    "pattern": "^([a-zA-Z0-9_\\-\\.]+)@([a-zA-Z0-9_\\-\\.]+)\\.([a-zA-Z]{2,5})$"
+                },
                 "help": {
                     "type": "boolean",
                     "description": "Display help text.",
@@ -241,10 +266,6 @@
                     "description": "Custom logo file to supply to MultiQC. File name must also be set in the MultiQC config file",
                     "fa_icon": "fas fa-image",
                     "hidden": true
-                },
-                "min_genfrac": {
-                    "type": "integer",
-                    "default": 90
                 },
                 "multiqc_methods_description": {
                     "type": "string",
