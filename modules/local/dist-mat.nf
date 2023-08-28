@@ -1,4 +1,6 @@
 process DIST_MAT {
+    tag "${taxa}_${cluster}"
+    label 'process_low'
 
     input:
     tuple val(taxa), val(cluster), path(dist), path(tree)
