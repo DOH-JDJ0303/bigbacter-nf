@@ -14,9 +14,9 @@ BigBacter is a pipeline aimed at simplifying bacterial genomic surviellance.
 This is accomplished by:
 1) pre-clustering isolates into closely related subtypes prior to phylogenetic analysis
 2) automatically selecting subtype-specific reference genomes for SNP analysis
-3) identifying and exclude low quality samples
-4) archiving historic samples and automatically including them when samples of the same subtype are identified
-5) re-using alignment files, thus dramatically increasing the speed of SNP analysis
+3) identifying and excluding low quality samples
+4) archiving samples and automatically including them when samples of the same subtype are identified
+5) re-using archived alignment files, thus dramatically increasing the speed of SNP analysis
 6) automatically generating figures needed for phylogenetic analysis (i.e., trees and SNP matricies)
 
 It is best practice to run samples through a generic bacterial analysis pipeline, such as [PHoeNIx](https://github.com/CDCgov/phoenix), [Bactopia](https://github.com/bactopia/bactopia), or [TheiaProk](https://github.com/theiagen/public_health_bioinformatics), prior to running BigBacter. This will generate the necessary input files (trimmed reads and an assembly), in addition to providing an initial QC check and species classification. BigBacter also requires a species-specific PopPUNK [database](https://www.bacpop.org/poppunk/). If a PopPUNK database does not exist for the species of interest it can be created following the instructions provided [here](https://poppunk.readthedocs.io/en/latest/index.html). A summary of the required inputs is provided below:
