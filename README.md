@@ -45,7 +45,7 @@ Each PopPUNK database can be supplied as gzip or bzip compressed tar files or as
 taxa,pp_db
 Acinetobacter_baumannii,abaumannii_db.tar.gz
 Escherichia_coli,ecoli_db.tar.bz2
-Staphylococcus_auris,staph_db/
+Staphylococcus_aureus,staph_db/
 ```
 ### Step 3. Add the PopPUNK database to your BigBacter database:
 Run the command below using the the samplesheet created above, changing inputs where appropriate. 
