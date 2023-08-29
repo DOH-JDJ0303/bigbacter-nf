@@ -19,7 +19,7 @@ This is accomplished by:
 5) re-using alignment files, thus dramatically increasing the speed of SNP analysis
 6) automatically generating figures needed for phylogenetic analysis (i.e., trees and SNP matricies)
 
-It is best practice to run samples through a generic bacterial analysis pipeline, such as [PHoeNIx](https://github.com/CDCgov/phoenix), [Bactopia](https://github.com/bactopia/bactopia), or [TheiaProk](https://github.com/theiagen/public_health_bioinformatics), prior to running BigBacter. This will generate the necessary input files (trimmed reads and an assembly), in addition to providing an initial QC check and species classification. BigBacter also requires a species-specific PopPUNK [database](https://www.bacpop.org/poppunk/). If a PopPUNK database does not exist for the species of interest it can be created following the instructions provided [here](https://poppunk.readthedocs.io/en/latest/index.html). A summary of the required inputs provided below:
+It is best practice to run samples through a generic bacterial analysis pipeline, such as [PHoeNIx](https://github.com/CDCgov/phoenix), [Bactopia](https://github.com/bactopia/bactopia), or [TheiaProk](https://github.com/theiagen/public_health_bioinformatics), prior to running BigBacter. This will generate the necessary input files (trimmed reads and an assembly), in addition to providing an initial QC check and species classification. BigBacter also requires a species-specific PopPUNK [database](https://www.bacpop.org/poppunk/). If a PopPUNK database does not exist for the species of interest it can be created following the instructions provided [here](https://poppunk.readthedocs.io/en/latest/index.html). A summary of the required inputs is provided below:
 1) Species-level classification.
 2) Trimmed/QC filtered reads.
 3) A high quality assembly (multiple contigs ok).
@@ -32,13 +32,39 @@ It is best practice to run samples through a generic bacterial analysis pipeline
 > to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline)
 > with `-profile test` before running the workflow on actual data.
 
-First, prepare the PopPUNK database
+### Step 1 - Download or create the PopPUNK database
+> **Note:** Steps 1-3 only need to be run once for each species.
 
+Download your species specific PopPUNK databases from [here](https://www.bacpop.org/poppunk/) or create one followig the PopPUNK [manual](https://poppunk.readthedocs.io/en/latest/index.html).
 
-Second, prepare a samplesheet with your input data that looks as follows:
+### Step 2. Prepare a samplesheet containing the database information
+Each PopPUNK database can be supplied as gzip or bzip compressed tar files or as the uncompressed directory. Databases will be reformatted and saved to taxa-specific directories within the supplied BigBacter database path (e.g., `$PWD/db/Acinetobacter_baumannii/pp_db/0000000000.tar.gz`).
+
+`pp_db_list.csv`:
+```csv
+taxa,pp_db
+Acinetobacter_baumannii,abaumannii_db.tar.gz
+Escherichia_coli,ecoli_db.tar.bz2
+Staphylococcus_auris,staph_db/
+```
+### Step 3. Add the PopPUNK database to your BigBacter database:
+Run the command below using the the samplesheet created above, changing inputs where appropriate. 
+> **Note:** The output directory is not used in this case but is required due to the order that Nextflow evaluates parameters.
+
+> **Note:** It is recommended that all database files be saved to a common directory (i.e., the BigBacter database). BigBacter will automatically split these files into species-specific directories and update them each time the pipeline is run.
+
+```bash
+nextflow run nf-core/bigbacter \
+   -entry PREPARE_DB \
+   --input pp_db_list.csv \
+   --outdir $PWD/results \
+   --db $PWD/db
+```
+
+### Step 4. Prepare a samplesheet containing sample information
+> **Note:** Steps 4-5 are run each time new samples are available.
 
 `samplesheet.csv`:
-
 ```csv
 sample,taxa,assembly,fastq_1,fastq_2
 sample1,Acinetobacter_baumannii,sample1.fasta,sample1_R1.fastq.gz,sample1_R2.fastq.gz
@@ -46,10 +72,9 @@ sample2,Escherichia_coli,sample2.fasta,sample2_R1.fastq.gz,sample2_R2.fastq.gz
 sample3,Staphylococcus_aureus,sample3.fasta,sample3_R1.fastq.gz,sample3_R2.fastq.gz
 ```
 
-Now, you can run the pipeline using:
-
+### Step 5. Run the main BigBacter pipeline:
 ```bash
-nextflow run nf-core/bigbacter \
+nextflow run https://github.com/DOH-JDJ0303/bigbacter-nf \
    --input samplesheet.csv \
    --outdir $PWD/results \
    --db $PWD/db
@@ -64,9 +89,7 @@ For more details, please refer to the [usage documentation](https://nf-co.re/big
 
 ## Pipeline output
 
-To see the the results of a test run with a full size dataset refer to the [results](https://nf-co.re/bigbacter/results) tab on the nf-core website pipeline page.
-For more details about the output files and reports, please refer to the
-[output documentation](https://nf-co.re/bigbacter/output).
+To be updated
 
 ## Credits
 
