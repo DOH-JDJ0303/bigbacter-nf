@@ -1,5 +1,3 @@
-# ![nf-core/bigbacter](docs/images/nf-core-bigbacter_logo_light.png#gh-light-mode-only) ![nf-core/bigbacter](docs/images/nf-core-bigbacter_logo_dark.png#gh-dark-mode-only)
-
 [![AWS CI](https://img.shields.io/badge/CI%20tests-full%20size-FF9900?labelColor=000000&logo=Amazon%20AWS)](https://nf-co.re/bigbacter/results)[![Cite with Zenodo](http://img.shields.io/badge/DOI-10.5281/zenodo.XXXXXXX-1073c8?labelColor=000000)](https://doi.org/10.5281/zenodo.XXXXXXX)
 
 [![Nextflow](https://img.shields.io/badge/nextflow%20DSL2-%E2%89%A522.10.1-23aa62.svg)](https://www.nextflow.io/)
@@ -12,20 +10,20 @@
 
 ## Introduction
 
-**nf-core/bigbacter** is a bioinformatics pipeline that ...
+BigBacter is a pipeline aimed at simplifying bacterial genomic surviellance. 
+This is accomplished by:
+1) pre-clustering isolates into closely related subtypes prior to phylogenetic analysis
+2) automatically selecting subtype-specific reference genomes for SNP analysis
+3) identifying and exclude low quality samples
+4) archiving historic samples and automatically including them when samples of the same subtype are identified
+5) re-using alignment files, thus dramatically increasing the speed of SNP analysis
+6) automatically generating figures needed for phylogenetic analysis (i.e., trees and SNP matricies)
 
-<!-- TODO nf-core:
-   Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
-   major pipeline sections and the types of output it produces. You're giving an overview to someone new
-   to nf-core here, in 15-20 seconds. For an example, see https://github.com/nf-core/rnaseq/blob/master/README.md#introduction
--->
-
-<!-- TODO nf-core: Include a figure that guides the user through the major workflow steps. Many nf-core
-     workflows use the "tube map" design for that. See https://nf-co.re/docs/contributing/design_guidelines#examples for examples.   -->
-<!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->
-
-1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
-2. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
+It is best practice to run samples through a generic bacterial analysis pipeline, such as [PHoeNIx](https://github.com/CDCgov/phoenix), [Bactopia](https://github.com/bactopia/bactopia), or [TheiaProk](https://github.com/theiagen/public_health_bioinformatics), prior to running BigBacter. This will generate the necessary input files (trimmed reads and an assembly), in addition to providing an initial QC check and species classification. BigBacter also requires a species-specific PopPUNK [database](https://www.bacpop.org/poppunk/). If a PopPUNK database does not exist for the species of interest it can be created following the instructions provided [here](https://poppunk.readthedocs.io/en/latest/index.html). A summary of the required inputs provided below:
+1) Species-level classification.
+2) Trimmed/QC filtered reads.
+3) A high quality assembly (multiple contigs ok).
+4) A PopPUNK database for the species of interest.
 
 ## Usage
 
@@ -34,31 +32,27 @@
 > to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline)
 > with `-profile test` before running the workflow on actual data.
 
-<!-- TODO nf-core: Describe the minimum required steps to execute the pipeline, e.g. how to prepare samplesheets.
-     Explain what rows and columns represent. For instance (please edit as appropriate):
+First, prepare the PopPUNK database
 
-First, prepare a samplesheet with your input data that looks as follows:
+
+Second, prepare a samplesheet with your input data that looks as follows:
 
 `samplesheet.csv`:
 
 ```csv
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
+sample,taxa,assembly,fastq_1,fastq_2
+sample1,Acinetobacter_baumannii,sample1.fasta,sample1_R1.fastq.gz,sample1_R2.fastq.gz
+sample2,Escherichia_coli,sample2.fasta,sample2_R1.fastq.gz,sample2_R2.fastq.gz
+sample3,Staphylococcus_aureus,sample3.fasta,sample3_R1.fastq.gz,sample3_R2.fastq.gz
 ```
-
-Each row represents a fastq file (single-end) or a pair of fastq files (paired end).
-
--->
 
 Now, you can run the pipeline using:
 
-<!-- TODO nf-core: update the following command to include all required parameters for a minimal example -->
-
 ```bash
 nextflow run nf-core/bigbacter \
-   -profile <docker/singularity/.../institute> \
    --input samplesheet.csv \
-   --outdir <OUTDIR>
+   --outdir $PWD/results \
+   --db $PWD/db
 ```
 
 > **Warning:**
