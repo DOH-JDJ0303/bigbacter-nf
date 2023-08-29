@@ -54,7 +54,7 @@ Run the command below using the the samplesheet created above, changing inputs w
 > **Note:** It is recommended that all database files be saved to a common directory (i.e., the BigBacter database). BigBacter will automatically split these files into species-specific directories and update them each time the pipeline is run.
 
 ```bash
-nextflow run nf-core/bigbacter \
+nextflow run https://github.com/DOH-JDJ0303/bigbacter-nf \
    -entry PREPARE_DB \
    --input pp_db_list.csv \
    --outdir $PWD/results \
