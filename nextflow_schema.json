@@ -47,14 +47,14 @@
             "properties": {
                 "push": {
                     "type": "boolean",
-                    "default": true,
+                    "default": false,
                     "fa_icon": "fas fa-file-export",
-                    "description": "Push files to database (Default: true). It is recommended that you check all outputs before pushing files to your BigBacter database. If results are deemed to be ok, the run can be resumed with this option set to 'true'. This avoids adding abnormal samples that may impact future analyses."
+                    "description": "Push files to database (Default: false). It is recommended that you check all outputs before pushing files to your BigBacter database. If results are deemed acceptable, the run can be resumed with this option set to 'true'. This avoids adding abnormal samples that may impact future analyses."
                 },
                 "min_genfrac": {
                     "type": "integer",
                     "default": 90,
-                    "description": "Percent of the reference genome required for a sample to be included in the core SNP analysis (default: 90)",
+                    "description": "Percent of the reference covered by a sample for it to be included in the core SNP analysis (default: 90)",
                     "fa_icon": "fas fa-chart-pie"
                 },
                 "max_het": {
@@ -66,19 +66,19 @@
                 "max_lowcov": {
                     "type": "integer",
                     "default": 5,
-                    "description": "Percentage of heterozygous sites allowed for a sample to be included in the core SNP analysis (default: 5)",
+                    "description": "Percentage of low coverage sites allowed for a sample to be included in the core SNP analysis (default: 5)",
                     "fa_icon": "fas fa-chart-pie"
                 },
                 "strong_link_cutoff": {
                     "type": "integer",
                     "default": 10,
-                    "description": "SNP distance threshold used to identity strong genomic linkages",
+                    "description": "SNP distance threshold used to classify strong genomic linkages (default: 10)",
                     "fa_icon": "fas fa-link"
                 },
                 "inter_link_cutoff": {
                     "type": "integer",
                     "default": 50,
-                    "description": "SNP distance threshold used to identity intermediate genomic linkages",
+                    "description": "SNP distance threshold used to classify intermediate genomic linkages (default: 50)",
                     "fa_icon": "fas fa-link"
                 },
                 "max_ml": {
