@@ -7,8 +7,8 @@ process POPPUNK_VISUAL {
     val timestamp
 
     output:
-    path "results/*",    emit: results
-    path 'versions.yml', emit: versions
+    path "${prefix}-poppunk*",    emit: results
+    path 'versions.yml',          emit: versions
 
 
     when:
@@ -28,7 +28,7 @@ process POPPUNK_VISUAL {
     poppunk_visualise --ref-db ${db} --output !{prefix}-poppunk !{args} 
     
     # move files to simplify output
-    mkdir results && mv !{prefix}-poppunk/* results/
+    mv !{prefix}-poppunk/* ./ && rm -r !{prefix}-poppunk/
 
     # version info
     echo "!{task.process}:\n    poppunk: $(poppunk_assign --version | cut -f 2 -d ' ' | tr -d '\n\r\t ')" > versions.yml
