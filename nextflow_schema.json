@@ -49,24 +49,24 @@
                     "type": "boolean",
                     "default": true,
                     "fa_icon": "fas fa-file-export",
-                    "description": "Whether or not to save new database files."
+                    "description": "Push files to database (Default: true). It is recommended that you check all outputs before pushing files to your BigBacter database. If results are deemed to be ok, the run can be resumed with this option set to 'true'. This avoids adding abnormal samples that may impact future analyses."
                 },
                 "min_genfrac": {
                     "type": "integer",
                     "default": 90,
-                    "description": "Minimum genome fraction for a sample to be included in the core SNP analysis",
+                    "description": "Percent of the reference genome required for a sample to be included in the core SNP analysis (default: 90)",
                     "fa_icon": "fas fa-chart-pie"
                 },
                 "max_het": {
                     "type": "integer",
                     "default": 1,
-                    "description": "Maximum number of heterozygous sites for a sample to be included in the core SNP analysis",
+                    "description": "Percentage of heterozygous sites allowed for a sample to be included in the core SNP analysis (default: 1)",
                     "fa_icon": "fas fa-chart-pie"
                 },
                 "max_lowcov": {
                     "type": "integer",
                     "default": 5,
-                    "description": "Maximum number of low coverage sites for a sample to be included in the core SNP analysis",
+                    "description": "Percentage of heterozygous sites allowed for a sample to be included in the core SNP analysis (default: 5)",
                     "fa_icon": "fas fa-chart-pie"
                 },
                 "strong_link_cutoff": {
