@@ -59,8 +59,6 @@ rename_file ${db} '.h5' ${new_name}
 rename_file ${db} '_fit.pkl' ${new_name}
 rename_file ${db} '.dists.npy' ${new_name}
 
-
-
 # compress the new directory
 echo -e "\nCompressing the new database:"
 tar -czvf ${out}.tar.gz ${out}/
