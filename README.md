@@ -38,7 +38,7 @@ It is best practice to run samples through a generic bacterial analysis pipeline
 Download your species specific PopPUNK databases from [here](https://www.bacpop.org/poppunk/) or create one followig the PopPUNK [manual](https://poppunk.readthedocs.io/en/latest/index.html).
 
 ### Step 2. Prepare a samplesheet containing the database information
-Each PopPUNK database can be supplied as gzip or bzip compressed tar files or as the uncompressed directory. Databases will be reformatted and saved to taxa-specific directories within the supplied BigBacter database path (e.g., `$PWD/db/Acinetobacter_baumannii/pp_db/0000000000.tar.gz`).
+PopPUNK databases are added to your BigBacter database using a samplesheet containing the species name and the path to the PopPUNK database (see below). This only has to be peformed once for each species! The database can be supplied as gzip or bzip compressed tar files or as the uncompressed directory. The PopPUNK database will be reformatted and saved to a taxa-specific directory within your BigBacter database (e.g., `$PWD/db/Acinetobacter_baumannii/pp_db/0000000000.tar.gz`). An example of this samplesheet using bzip, gzip, and uncompressed PopPUNK databases is shown below.
 
 `pp_db_list.csv`:
 ```csv
@@ -47,17 +47,14 @@ Acinetobacter_baumannii,abaumannii_db.tar.gz
 Escherichia_coli,ecoli_db.tar.bz2
 Staphylococcus_aureus,staph_db/
 ```
-### Step 3. Add the PopPUNK database to your BigBacter database:
+### Step 3. Run the BigBacter `PREPARE_DB` workflow to add the PopPUNK database to your BigBacter database:
 Run the command below using the the samplesheet created above, changing inputs where appropriate. 
-> **Note:** The output directory is not used in this case but is required due to the order that Nextflow evaluates parameters.
-
-> **Note:** It is recommended that all database files be saved to a common directory (i.e., the BigBacter database). BigBacter will automatically split these files into species-specific directories and update them each time the pipeline is run.
+> **Note:** It is recommended that all database files be saved to a common directory (i.e., the BigBacter database). BigBacter will automatically split these files into taxa-specific directories and update them each time the pipeline is run.
 
 ```bash
 nextflow run https://github.com/DOH-JDJ0303/bigbacter-nf \
    -entry PREPARE_DB \
    --input pp_db_list.csv \
-   --outdir $PWD/results \
    --db $PWD/db
 ```
 
@@ -72,7 +69,7 @@ sample2,Escherichia_coli,sample2.fasta,sample2_R1.fastq.gz,sample2_R2.fastq.gz
 sample3,Staphylococcus_aureus,sample3.fasta,sample3_R1.fastq.gz,sample3_R2.fastq.gz
 ```
 
-### Step 5. Run the main BigBacter pipeline:
+### Step 5. Run the main BigBacter workflow:
 ```bash
 nextflow run https://github.com/DOH-JDJ0303/bigbacter-nf \
    --input samplesheet.csv \
