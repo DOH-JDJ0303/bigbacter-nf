@@ -49,15 +49,16 @@ rename_file () {
 
 # reformat database for BigBacter
 new_name='0000000000'
-rename_file ${db} '_graph.gt' ${new_name}
-rename_file ${db} '.refs' ${new_name}
-rename_file ${db} '.dists.pkl' ${new_name}
-rename_file ${db} '_unword_clusters.csv' ${new_name}
-rename_file ${db} '_clusters.csv' ${new_name}
-rename_file ${db} '_fit.npz' ${new_name}
+
+## these are all required files - https://poppunk.readthedocs.io/en/latest/model_distribution.html
 rename_file ${db} '.h5' ${new_name}
-rename_file ${db} '_fit.pkl' ${new_name}
+rename_file ${db} '.dists.pkl' ${new_name}
 rename_file ${db} '.dists.npy' ${new_name}
+rename_file ${db} '_fit.pkl' ${new_name}
+rename_file ${db} '_fit.npz' ${new_name}
+rename_file ${db} '_graph.gt' ${new_name}
+rename_file ${db} '_clusters.csv' ${new_name}
+rename_file ${db} '.refs' ${new_name} # this is not technically required but should be included for speed
 
 # compress the new directory
 echo -e "\nCompressing the new database:"
