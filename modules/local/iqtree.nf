@@ -18,7 +18,7 @@ process IQTREE {
     prefix       = "${timestamp}-${taxa}-${cluster}"
     '''
     # run IQTREE2
-    iqtree2 -s !{aln} !{args} || true
+    iqtree2 -s !{aln} -T !{task.cpus} !{args} || true
 
     #### VERSION INFO ####
     cat <<-END_VERSIONS > versions.yml
