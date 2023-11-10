@@ -53,10 +53,10 @@ process SNIPPY_CORE {
     val timestamp
 
     output:
-    tuple val(taxa), val(cluster), path("${prefix}.stats"),       emit: stats
-    tuple val(taxa), val(cluster), path("${prefix}.aln"),      emit: snp_aln
-    tuple val(taxa), val(cluster), path("${prefix}.full.aln"), emit: full_aln
-    path 'versions.yml',                                  emit: versions
+    tuple val(taxa), val(cluster), path("${prefix}.stats"),                                     emit: stats
+    tuple val(taxa), val(cluster), path("${prefix}.aln"), path("${prefix}-constant-sites.txt"), emit: snp_aln
+    tuple val(taxa), val(cluster), path("${prefix}.full.aln"),                                  emit: full_aln
+    path 'versions.yml',                                                                        emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -118,6 +118,9 @@ process SNIPPY_CORE {
 
     # move full alignment to simplify publish
     mv core/*.aln ./
+
+    # get constant sites
+    snp-sites -C !{prefix}.full.aln > !{prefix}-constant-sites.txt
 
     #### VERSION INFO ####
     cat <<-END_VERSIONS > versions.yml

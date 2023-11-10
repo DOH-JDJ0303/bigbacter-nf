@@ -3,11 +3,11 @@ process IQTREE {
     label 'process_high'
     
     input:
-    tuple val(taxa), val(cluster), path(aln)
+    tuple val(taxa), val(cluster), path(aln), path(const_sites)
     val timestamp
 
     output:
-    tuple val(taxa), val(cluster), path("*.treefile"), emit: result, optional: true
+    tuple val(taxa), val(cluster), path("*.contree"), emit: result, optional: true
     path 'versions.yml',                               emit: versions
 
     when:
@@ -18,7 +18,7 @@ process IQTREE {
     prefix       = "${timestamp}-${taxa}-${cluster}"
     '''
     # run IQTREE2
-    iqtree2 -s !{aln} -T !{task.cpus} !{args} || true
+    iqtree2 -s !{aln} -fconst $(cat !{const_sites}) -T !{task.cpus} !{args} || true
 
     #### VERSION INFO ####
     cat <<-END_VERSIONS > versions.yml
