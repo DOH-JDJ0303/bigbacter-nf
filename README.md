@@ -72,10 +72,21 @@ sample3,Staphylococcus_aureus,sample3.fasta,sample3_R1.fastq.gz,sample3_R2.fastq
 ### Step 5. Run the main BigBacter workflow:
 ```bash
 nextflow run https://github.com/DOH-JDJ0303/bigbacter-nf \
-   --input samplesheet.csv \
-   --outdir $PWD/results \
-   --db $PWD/db
+    --input samplesheet.csv \
+    --outdir $PWD/results \
+    --db $PWD/db
 ```
+### Step 6. Check your results & push ("save") the new changes.
+If you are satified with your results, you can push the new samples to your BigBacter database. This can be done by re-running the command in step 5 with the "-resume" and "--push true" flags. This is designed to avoid accidently adding poor quality samples to your database. If you are not worried about this, you can just run "--push true" during step 5. These samples will now be saved in your database and will be automatically included in any future analyses involving that species/cluster.
+```bash
+nextflow run https://github.com/DOH-JDJ0303/bigbacter-nf \
+    --input samplesheet.csv \
+    --outdir $PWD/results \
+    --db $PWD/db \
+    --push true \
+    -resume
+```
+
 
 > **Warning:**
 > Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those
