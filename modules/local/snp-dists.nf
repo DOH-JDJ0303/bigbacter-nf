@@ -3,7 +3,7 @@ process SNP_DISTS {
     label 'process_low'
     
     input:
-    tuple val(taxa), val(cluster), path(aln)
+    tuple val(taxa), val(cluster), path(aln), val(const_sites)
     val timestamp
 
     output:
@@ -17,9 +17,14 @@ process SNP_DISTS {
     args         = task.ext.args ?: ''
     prefix       = "${timestamp}-${taxa}-${cluster}-core"
     '''
-    # run snp-dists
-    snp-dists !{args} !{aln} > !{prefix}.dist
-
+    # Run snp-dists if SNPs were detected, otherwise create empty file
+    if [ -s !{aln} ]
+    then
+        snp-dists !{args} !{aln} > !{prefix}.dist
+    else
+        touch !{prefix}.dist
+    fi
+    
     #### VERSION INFO ####
     cat <<-END_VERSIONS > versions.yml
     "!{task.process}":

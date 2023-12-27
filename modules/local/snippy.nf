@@ -89,6 +89,7 @@ process SNIPPY_CORE {
     cd ../
 
     # run Snippy-core
+    # it is possible that no SNPs are found, so this will always be allowed to succeed
     mkdir core
     cd core
     snippy-core --prefix !{prefix} --ref ../${ref} !{args} ../all_files/* || true
@@ -119,8 +120,14 @@ process SNIPPY_CORE {
     # move full alignment to simplify publish
     mv core/*.aln ./
 
+    # create empty alignment file, in the case that no SNPs were found
+    if [ ! -s !{prefix}.aln ]
+    then
+        touch !{prefix}.aln
+    fi
+
     # get constant sites
-    snp-sites -C !{prefix}.full.aln > !{prefix}-constant-sites.txt
+    snp-sites -C !{prefix}.full.aln > !{prefix}-constant-sites.txt || true
 
     #### VERSION INFO ####
     cat <<-END_VERSIONS > versions.yml

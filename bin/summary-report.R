@@ -29,7 +29,7 @@ n_iso <- core_s %>%
   nrow()
 
 # Load distance matrix - if the file exists
-if(file.exists(core_d_file)){
+if(file.exists(core_d_file) & file.size(core_d_file) != 0L){
   core_d <- read_tsv(core_d_file) %>%
     rename(ID = ...1) %>%
     pivot_longer(names_to = "ID2", values_to = "snps", cols = 2:ncol(.))
@@ -65,14 +65,14 @@ if(file.exists(core_d_file)){
 }else{
   # make tables with error messages
   core_d_summary <- core_s %>%
-    mutate(MEAN_SNP_DIST = "cannot calculate - core.dist missing",
-           MIN_SNP_DIST = "cannot calculate - core.dist missing",
-           MAX_SNP_DIST = "cannot calculate - core.dist missing") %>%
+    mutate(MEAN_SNP_DIST = "cannot calculate - missing or empty SNP distance matrix",
+           MIN_SNP_DIST = "cannot calculate - missing or empty SNP distance matrix",
+           MAX_SNP_DIST = "cannot calculate - missing or empty SNP distance matrix") %>%
     select(ID, MEAN_SNP_DIST, MIN_SNP_DIST, MAX_SNP_DIST)
   
   core_linkages <- core_s %>%
-    mutate(STRONG_LINKAGE = "cannot calculate - core.dist missing",
-           INTER_LINKAGE = "cannot calculate - core.dist missing") %>%
+    mutate(STRONG_LINKAGE = "cannot calculate - missing or empty SNP distance matrix",
+           INTER_LINKAGE = "cannot calculate - missing or empty SNP distance matrix") %>%
     select(ID, STRONG_LINKAGE, INTER_LINKAGE)
 }
 
