@@ -139,17 +139,20 @@ workflow BIGBACTER {
    // MODULE: Make tree figures and distance matrix
    CORE_TREE_FIGURE(
     VARIANTS.out.core_tree,
+    params.input,
     timestamp
    )
 
    MASH_TREE_FIGURE(
     MASH.out.mash_tree,
+    params.input,
     timestamp
    )
    
    VARIANTS.out.core_dist.map{taxa, cluster, dist -> [taxa, cluster, dist]}.join(VARIANTS.out.core_tree.map{ taxa, cluster, tree -> [taxa, cluster, tree]}, by: [0,1]).set{dist_mat_input}
    DIST_MAT(
     dist_mat_input,
+    params.input,
     timestamp
    )
    

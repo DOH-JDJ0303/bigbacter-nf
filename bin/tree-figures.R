@@ -1,15 +1,19 @@
 #!/usr/bin/env Rscript
 
-# load packahes
+#---- LOAD PACKAGES ----#
 library(tidyverse)
 library(phangorn)
 library(ggtree)
 
-# load arguments
+#---- LOAD ARGUMENTS ----#
 args <- commandArgs(trailingOnly=TRUE)
-
-## load tree
 tree_path <- args[1]
+manifest_path <- args[2]
+
+
+
+#---- LOAD TREE & CLEAN UP ----#
+# load tree
 tree <- read.tree(tree_path)
 # clean up sample names
 tree$tip.label <- str_remove_all(tree$tip.label, pattern = "'")
@@ -23,9 +27,21 @@ n_iso <- tree$tip.label %>% length()
 if(n_iso > 3){
   tree <- midpoint(tree)
 }
-## initial plot
+
+#---- LOAD MANIFEST FILE & CREATE METADATA----#
+# load manifest file
+df.manifest <- read.csv(manifest_path)
+# create metadata
+df.meta <- data.frame(sample = tree$tip.label, font_face = "plain", status = "OLD") %>%
+  mutate(font_face = case_when(sample %in% df.manifest$sample ~ "bold",
+                          TRUE ~ font_face),
+         status = case_when(sample %in% df.manifest$sample ~ "NEW",
+                          TRUE ~ status))
+
+#---- PLOT TREE ----#
+# initial plot
 p_tree <- ggtree(tree)
-## get sizing info
+# get sizing info
 size_tree <- function(plot){
   # extract plot data
   data <- plot$data
@@ -42,11 +58,13 @@ size_tree <- function(plot){
 maxs <- size_tree(p_tree) %>% unlist()
 name_size=as.numeric(maxs[1])/15
 x_max=as.numeric(maxs[2])*1.2
-## re-plot tree
-p_tree <- p_tree+
-  geom_tiplab()+ 
+# re-plot tree with sizing info & metadata
+p_tree <- p_tree%<+%df.meta+
+  geom_tiplab(aes(fontface = font_face, color = status))+
+  scale_color_manual(values = c("black", "darkgrey"), breaks = c("NEW", "OLD"))+
+  theme(legend.position = "none")+
   xlim(0,as.numeric(x_max))
-## save image
+# save image
 n_iso <- p_tree$data %>%
   drop_na() %>%
   nrow()

@@ -4,6 +4,7 @@ process TREE_FIGURE {
 
     input:
     tuple val(taxa), val(cluster), path(tree)
+    path manifest
     val timestamp
 
     output:
@@ -16,6 +17,6 @@ process TREE_FIGURE {
     shell:
     prefix = "${timestamp}-${taxa}-${cluster}"
     '''
-    tree-figures.R !{tree}
+    tree-figures.R !{tree} !{manifest}
     '''
 }

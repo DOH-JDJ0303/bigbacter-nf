@@ -4,6 +4,7 @@ process DIST_MAT {
 
     input:
     tuple val(taxa), val(cluster), path(dist), path(tree)
+    path manifest
     val timestamp
 
     output:
@@ -17,7 +18,7 @@ process DIST_MAT {
     prefix = "${timestamp}-${taxa}-${cluster}-snp-matrix"
     '''
     # make figure
-    dist-mat.R !{dist} !{tree}
+    dist-mat.R !{dist} !{tree} !{manifest}
     # rename figure
     mv snp-matrix.jpg !{prefix}.jpg
     '''
