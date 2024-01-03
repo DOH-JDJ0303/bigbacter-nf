@@ -16,7 +16,7 @@ for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true
 
 // Check mandatory parameters
 if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
-if (params.db) { ch_input = file(params.db) } else { exit 1, 'BigBacter database not specified!' }
+if (params.db) { ch_db = file(params.db) } else { exit 1, 'BigBacter database not specified!' }
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     CONFIG FILES
@@ -78,24 +78,21 @@ workflow BIGBACTER {
     //
     // SUBWORKFLOW: Read in samplesheet, validate and stage input files
     //
-    //INPUT_CHECK (
-    //    ch_input
-    //)
-    //ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
-
+    INPUT_CHECK (
+       ch_input
+    )
+    ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
+    // The 'single_end' field is removed because samples must be paired end.
+    INPUT_CHECK
+      .out.manifest
+      .map{ tuple(it.sample, it.taxa, it.assembly, it.fastq_1, it.fastq_2)}
+      .set{manifest}
 
     // Get timestamp - used to name cache and some new files
     TIMESTAMP()
     TIMESTAMP
         .out
         .set { timestamp }
-
-    // load manifest file
-    Channel
-        .fromPath(params.input)
-        .splitCsv(header: true)
-        .map { tuple(it.sample, it.taxa, it.assembly, it.fastq_1, it.fastq_2) }
-        .set { manifest }
 
     // SUBWORKFLOW: Assign PopPUNK clusters
     CLUSTER(

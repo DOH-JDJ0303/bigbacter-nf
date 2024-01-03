@@ -15,7 +15,7 @@ workflow INPUT_CHECK {
         .set { manifest }
 
     emit:
-    manifest                                     // channel: [ val(meta), val(taxa), file(assembly), file(fastq_1), file(fastq_2) ]
+    manifest                                  // channel: [ val(meta), val(taxa), file(assembly), file(fastq_1), file(fastq_2) ]
     versions = SAMPLESHEET_CHECK.out.versions // channel: [ versions.yml ]
 }
 
@@ -25,6 +25,11 @@ def create_sample_channel(LinkedHashMap row) {
     def meta = [:]
     meta.id         = row.sample
     meta.single_end = row.single_end.toBoolean()
+
+    // check that data is paired end
+    if (!meta.single_end) {
+        exit 1, "ERROR: Please check input samplesheet -> This pipeline requires paired end reads. Please provide both a forward and reverse read!"
+    }
 
     // check that files exist
     if (!file(row.assembly).exists()) {

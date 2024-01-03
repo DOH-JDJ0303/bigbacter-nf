@@ -7,10 +7,15 @@ include { ASSIGN_PP_CLUSTER } from '../../modules/local/assign-pp-cluster'
 include { POPPUNK_VISUAL    } from '../../modules/local/poppunk-visualize'
 
 // Function for determining the most recent PopPUNK database
-def get_ppdb ( s ) {
-    s_path = file(params.db).resolve(s)
+def get_ppdb ( t ) {
+    // determine path to taxa database
+    t_path = file(params.db).resolve(t)
+    // check that a bigbacter database exists for the taxa
+    if(!t_path.exists()) {
+        exit 1, "ERROR: No BigBacter database exists for \n${t} at the provided path: ${params.db}"
+    }
     // get most recent PopPunk database
-    pp_db = s_path.resolve("pp_db")
+    pp_db = t_path.resolve("pp_db")
     pp_db = pp_db.resolve(pp_db.list().sort().last())
         
     return pp_db
