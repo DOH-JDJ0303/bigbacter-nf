@@ -31,7 +31,7 @@ process ASSIGN_PP_CLUSTER {
     echo !{assembly.join(',')} | tr ',' '\n' > a_col
     paste s_col a_col -d ',' > ALL
     # exclude samples that have already been run
-    old_s=$(cat */*_clusters.csv | tr ',' '\t' | cut -f 1 | tr '\n\t\r$ ' '@')
+    old_s=$(cat */*_clusters.csv | tr ',' '\t' | cut -f 1 | tr '\n\t\r$ ' '@' | sed 's/^/@/g')
     for line in $(cat ALL)
     do
         s=$(echo ${line} | tr ',' '\t' | cut -f 1)
@@ -51,12 +51,15 @@ process ASSIGN_PP_CLUSTER {
         --query qfile.txt \
         --output !{timestamp} \
         --threads !{task.cpus}
-        
-        # compress new database (output)
-        tar -czvf !{timestamp}.tar.gz !{timestamp}
-        # remove old database tar files
-        rm -r ${db}*
+
+        # check for newly merged samples
+        detect_merges.sh ${db}/${db}_clusters.csv !{timestamp}/!{timestamp}_clusters.csv
+
+        # compress new database (output) & remove old database
+        tar -czvf !{timestamp}.tar.gz !{timestamp} && rm -r ${db}*
     fi
+
+    #### DETECT NEW MERGED CLUSTERS ####
 
     #### COLLECTING CLUSTER INFO ####
     # get cluster info for each sample
