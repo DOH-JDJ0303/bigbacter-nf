@@ -8,6 +8,7 @@ process ASSIGN_PP_CLUSTER {
 
     output:
     path 'pp_results.csv',                                  emit: cluster_results
+    path 'merged_clusters.csv',                             emit: merged_clusters
     tuple val(taxa), path('*.tar.gz', includeInputs: true), emit: new_pp_db
     path 'versions.yml',                                    emit: versions
 
@@ -52,22 +53,21 @@ process ASSIGN_PP_CLUSTER {
         --output !{timestamp} \
         --threads !{task.cpus}
 
-        # check for newly merged samples
-        detect_merges.sh ${db}/${db}_clusters.csv !{timestamp}/!{timestamp}_clusters.csv
-
         # compress new database (output) & remove old database
         tar -czvf !{timestamp}.tar.gz !{timestamp} && rm -r ${db}*
     fi
 
-    #### DETECT NEW MERGED CLUSTERS ####
+    #### RENAME RESULTS ####
+    cp $(ls */*_clusters.csv | grep -v "unword") pp_results.csv
 
-    #### COLLECTING CLUSTER INFO ####
-    # get cluster info for each sample
-    echo "sample,taxa,cluster" > pp_results.csv
-    for s in $(cat ALL | tr ',' '\t' | cut -f 1)
+    #### SPLIT MERGED CLUSTERS ####
+    echo "taxa,merged_cluster,cluster" > merged_clusters.csv
+    for m in $(cat pp_results.csv | cut -f 2 -d ',' | grep '_' | sort | uniq)
     do
-        clust_file=$(ls */*_clusters.csv | grep -v "unword")
-        cat ${clust_file} | tr ',' '\t' | awk '{printf($1 "\t%05d,", $2)}' | tr ',' '\n' | awk -v s=${s} -v t=!{taxa} '$1 == s {print $1,t,$2}' | tr ' ' ',' >> pp_results.csv
+        for c in $(echo ${m} | tr '_' ' ')
+        do
+            echo "!{taxa},${m},$(printf "%05d" ${c})" >> merged_clusters.csv
+        done
     done
     
     # version info

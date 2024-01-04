@@ -30,8 +30,8 @@ workflow VARIANTS {
         .map{ taxa, cluster, assembly, status -> [taxa, cluster, assembly, status.get(0)] }
         .set { clust_grps }
     
-    clust_grps.filter{ taxa, cluster, assembly, status -> status == "new" }.map{ taxa, cluster, assembly, status -> [taxa, cluster, assembly.first()] }.set{ clust_grp_new }
-    clust_grps.filter{ taxa, cluster, assembly, status -> status == "old" }.map{ taxa, cluster, assembly, status -> [taxa, cluster, file(params.db) / taxa / "clusters" / cluster / "ref/ref.fa.gz" ] }.set{ clust_grps_old }
+    clust_grps.filter{ taxa, cluster, assembly, status -> ! status }.map{ taxa, cluster, assembly, status -> [taxa, cluster, assembly.first()] }.set{ clust_grp_new }
+    clust_grps.filter{ taxa, cluster, assembly, status -> status }.map{ taxa, cluster, assembly, status -> [taxa, cluster, file(params.db) / taxa / "clusters" / cluster / "ref/ref.fa.gz" ] }.set{ clust_grps_old }
     
     clust_grp_new.concat(clust_grps_old).set{ clust_grps_refs }
 
@@ -56,8 +56,8 @@ workflow VARIANTS {
         .map {sample, taxa, cluster, status, ref, new_snps -> [taxa, cluster, status.get(0), ref.get(0), new_snps]}
         .set {clust_grps}
 
-    clust_grps.filter{ taxa, cluster, status, ref, new_snps -> status == "new" }.map{ taxa, cluster, status, ref, new_snps -> [taxa, cluster, ref, new_snps, []] }.set{ clust_grp_new }
-    clust_grps.filter{ taxa, cluster, status, ref, new_snps -> status == "old" }.map{ taxa, cluster, status, ref, new_snps -> [taxa, cluster, ref, new_snps, file(file(params.db) / taxa / "clusters" / cluster / "snippy", type: 'dir')] }.set{ clust_grp_old }
+    clust_grps.filter{ taxa, cluster, status, ref, new_snps -> ! status }.map{ taxa, cluster, status, ref, new_snps -> [taxa, cluster, ref, new_snps, []] }.set{ clust_grp_new }
+    clust_grps.filter{ taxa, cluster, status, ref, new_snps -> status }.map{ taxa, cluster, status, ref, new_snps -> [taxa, cluster, ref, new_snps, file(file(params.db) / taxa / "clusters" / cluster / "snippy", type: 'dir')] }.set{ clust_grp_old }
 
     clust_grp_new.concat(clust_grp_old).set { snp_files }
     

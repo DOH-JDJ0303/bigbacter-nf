@@ -20,10 +20,10 @@ workflow MASH {
     
     // Build paths for existing sketch files
     // New samples - no files exist
-    clust_grps.filter{ taxa, cluster, status, sample, assembly -> status == "new" }.map{ taxa, cluster, status, sample, assembly -> [taxa, cluster, status, sample, assembly, []] }.set{ clust_grp_new }
+    clust_grps.filter{ taxa, cluster, status, sample, assembly -> ! status }.map{ taxa, cluster, status, sample, assembly -> [taxa, cluster, status, sample, assembly, []] }.set{ clust_grp_new }
     // Old samples
     clust_grps
-        .filter{ taxa, cluster, status, sample, assembly -> status == "old" }
+        .filter{ taxa, cluster, status, sample, assembly -> status }
         .map{ taxa, cluster, status, sample, assembly -> [taxa, cluster, status, sample, assembly, file(file(params.db) / taxa / "clusters" / cluster / "mash", type: 'dir') ] }
         .concat(clust_grp_new)
         .set{mash_files}

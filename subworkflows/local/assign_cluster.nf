@@ -3,19 +3,21 @@
 //
 
 // Modules
-include { ASSIGN_PP_CLUSTER } from '../../modules/local/assign-pp-cluster'
-include { POPPUNK_VISUAL    } from '../../modules/local/poppunk-visualize'
+include { ASSIGN_PP_CLUSTER       } from '../../modules/local/assign-pp-cluster'
+include { POPPUNK_VISUAL          } from '../../modules/local/poppunk-visualize'
+include { RESOLVE_MERGED_CLUSTERS } from '../../modules/local/resolve-merged-clusters'
+
 
 // Function for determining the most recent PopPUNK database
-def get_ppdb ( t ) {
+def get_ppdb ( taxa ) {
     // determine path to taxa database
-    t_path = file(params.db).resolve(t)
+    taxa_path = file(params.db).resolve(taxa)
     // check that a bigbacter database exists for the taxa
-    if(!t_path.exists()) {
-        exit 1, "ERROR: No BigBacter database exists for \n${t} at the provided path: ${params.db}"
+    if(!taxa_path.exists()) {
+        exit 1, "ERROR: No BigBacter database exists for \n${taxa} at the provided path: ${params.db}"
     }
     // get most recent PopPunk database
-    pp_db = t_path.resolve("pp_db")
+    pp_db = taxa_path.resolve("pp_db")
     pp_db = pp_db.resolve(pp_db.list().sort().last())
         
     return pp_db
@@ -24,8 +26,14 @@ def get_ppdb ( t ) {
 // Function for determining if a cluster is new or old
 def get_status ( taxa, cluster ) {
     c_path = file(params.db).resolve(taxa).resolve("clusters").resolve(cluster)
-    status = c_path.exists() ? "old" : "new"
+    status = c_path.exists() ? true : false
     return status        
+}
+
+def get_mash_files ( taxa, cluster ) {
+    c_path = file(params.db).resolve(taxa).resolve("clusters").resolve(cluster)
+    mash_files = c_path.exists() ? c_path : null
+    return mash_files 
 }
 
 workflow CLUSTER {
@@ -56,17 +64,45 @@ workflow CLUSTER {
     )
     ch_versions = ch_versions.mix(POPPUNK_VISUAL.out.versions)
 
-    // Assign clusters as new and old   
+    // Load cluster results  
     ASSIGN_PP_CLUSTER
         .out
         .cluster_results
         .splitCsv(header: true)
-        .map { tuple(it.sample, it.taxa, it.cluster) }
-        .map{ sample, taxa, cluster -> [sample, cluster, get_status(taxa, cluster)]}
+        .map { tuple(it.Taxon, it.Cluster) } // 'Taxon' == 'sample' != 'taxa' .
+        .join(manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [sample, taxa, assembly] }, by: 0)
+        .set {cluster_results}
+
+    // 
+    // MODULE: Resolve merged clusters
+    // 
+
+    // load merged clusters
+    ASSIGN_PP_CLUSTER
+        .out
+        .merged_clusters
+        .splitCsv(header: true)
+        .map { tuple(it.taxa, it.merged_cluster, it.cluster, file(params.db).resolve(it.taxa).resolve("clusters").resolve(it.cluster).resolve("mash"), get_status(it.taxa, it.cluster)) }
+        .filter { taxa, merged_cluster, cluster, mash_path, status -> status }
+        .groupTuple(by: [0,1])
+        .combine(cluster_results.map {sample, cluster, taxa, assembly -> [taxa, cluster, assembly, sample] }, by: [0,1] )
+        .set { merged_clusters }
+
+    RESOLVE_MERGED_CLUSTERS (
+        merged_clusters
+    )
+
+    // Updated resolved clusters and determine if clusters are new or old
+    cluster_results
+        .map { sample, cluster, taxa, assembly -> [sample, taxa, cluster, cluster.contains("_")] }
+        .filter { sample, taxa, cluster, merge_status -> ! merge_status }
+        .map { sample, taxa, cluster, merge_status -> [ sample, taxa, cluster ] }
+        .concat(RESOLVE_MERGED_CLUSTERS.out.best_cluster.splitCsv(header: false))
+        .map { sample, taxa, cluster -> [sample, cluster.padLeft(5, "0"), get_status(taxa, cluster.padLeft(5, "0"))]}
         .set { sample_cluster_status }
-    
+
     emit:
-    sample_cluster_status = sample_cluster_status           // channel: [ val(sample), val(cluster), val(status) ]
+    sample_cluster_status = sample_cluster_status           // channel: [ val(sample), val(cluster), val(new_status), val(merge_status) ]
     new_pp_db             = ASSIGN_PP_CLUSTER.out.new_pp_db // channel: [ val(taxa), path(new_pp_db)]
     versions              = ch_versions                     // channel: [ versions.yml ]
 }
