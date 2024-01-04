@@ -30,12 +30,6 @@ def get_status ( taxa, cluster ) {
     return status        
 }
 
-def get_mash_files ( taxa, cluster ) {
-    c_path = file(params.db).resolve(taxa).resolve("clusters").resolve(cluster)
-    mash_files = c_path.exists() ? c_path : null
-    return mash_files 
-}
-
 workflow CLUSTER {
     take:
     manifest   // channel: [ val(sample), val(taxa), file(assembly), file(fastq_1), file(fastq_2) ]
@@ -75,29 +69,50 @@ workflow CLUSTER {
 
     // 
     // MODULE: Resolve merged clusters
-    // 
+    //
 
-    // load merged clusters
-    ASSIGN_PP_CLUSTER
-        .out
-        .merged_clusters
-        .splitCsv(header: true)
-        .map { tuple(it.taxa, it.merged_cluster, it.cluster, file(params.db).resolve(it.taxa).resolve("clusters").resolve(it.cluster).resolve("mash"), get_status(it.taxa, it.cluster)) }
-        .filter { taxa, merged_cluster, cluster, mash_path, status -> status }
-        .groupTuple(by: [0,1])
-        .combine(cluster_results.map {sample, cluster, taxa, assembly -> [taxa, cluster, assembly, sample] }, by: [0,1] )
-        .set { merged_clusters }
+    if ( params.resolve_merged ) {
+        // load merged clusters
+        ASSIGN_PP_CLUSTER
+            .out
+            .merged_clusters
+            .splitCsv(header: true)
+            .map { tuple(it.taxa, it.merged_cluster, it.cluster, file(params.db).resolve(it.taxa).resolve("clusters").resolve(it.cluster).resolve("mash"), get_status(it.taxa, it.cluster)) }
+            .filter { taxa, merged_cluster, cluster, mash_path, status -> status }
+            .groupTuple(by: [0,1])
+            .combine(cluster_results.map { sample, cluster, taxa, assembly -> [ taxa, cluster, assembly, sample ] }, by: [0,1] )
+            .set { merged_clusters }
 
-    RESOLVE_MERGED_CLUSTERS (
-        merged_clusters
-    )
+        RESOLVE_MERGED_CLUSTERS (
+            merged_clusters
+        )
 
-    // Updated resolved clusters and determine if clusters are new or old
+        
+        cluster_results
+            .map { sample, cluster, taxa, assembly -> [ sample, taxa, cluster, cluster.contains("_") ] }
+            .filter { sample, taxa, cluster, merge_status -> params.resolve_merged ? ! merge_status : true }
+            .map { sample, taxa, cluster, merge_status -> [ sample, taxa, cluster ] }
+            .concat(RESOLVE_MERGED_CLUSTERS.out.best_cluster.splitCsv(header: false))
+            .set { cluster_results }
+    }
+    if ( ! params.resolve_merged ) {
+        // load merged clusters
+        ASSIGN_PP_CLUSTER
+            .out
+            .merged_clusters
+            .splitCsv(header: true)
+            .map { tuple(it.taxa, it.merged_cluster) }
+            .distinct()
+            .map { taxa, merged_cluster -> println( "\nWARNING: You have selected not to resolve " + taxa + " cluster "+ merged_cluster +". \nThis can lead to missed genetic relationships. See https://github.com/DOH-JDJ0303/bigbacter-nf for more information.\n") }
+        
+        // remove status from 
+        cluster_results
+            .map { sample, cluster, taxa, assembly ->  [sample, taxa, cluster ] }
+            .set { cluster_results }
+    }
+    
+    // Add padding to cluster numbers and determine if they are new or old
     cluster_results
-        .map { sample, cluster, taxa, assembly -> [sample, taxa, cluster, cluster.contains("_")] }
-        .filter { sample, taxa, cluster, merge_status -> ! merge_status }
-        .map { sample, taxa, cluster, merge_status -> [ sample, taxa, cluster ] }
-        .concat(RESOLVE_MERGED_CLUSTERS.out.best_cluster.splitCsv(header: false))
         .map { sample, taxa, cluster -> [sample, cluster.padLeft(5, "0"), get_status(taxa, cluster.padLeft(5, "0"))]}
         .set { sample_cluster_status }
 

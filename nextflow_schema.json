@@ -86,6 +86,12 @@
                     "default": 100,
                     "description": "Maximum number of samples in a cluster for IQTREE to be run. This is to avoid extremely long analyses due to large trees. If the number of samples in a cluster exceeds this amount, Rapidnj will be used instead.",
                     "fa_icon": "fas fa-tree"
+                },
+                "resolve_merged": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-object-group",
+                    "description": "Option to resolve merged PopPUNK clusters. WARNING: Failure to resolve merged clusters may lead to missed genetic relationships.",
+                    "default": true
                 }
             },
             "fa_icon": "fas fa-terminal"
@@ -312,5 +318,11 @@
         {
             "$ref": "#/definitions/generic_options"
         }
-    ]
+    ],
+    "properties": {
+        "schema_ignore_params": {
+            "type": "string",
+            "default": "genomes"
+        }
+    }
 }
