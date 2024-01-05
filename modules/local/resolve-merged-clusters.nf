@@ -4,7 +4,7 @@ process RESOLVE_MERGED_CLUSTERS {
     label 'process_low'
 
     input:
-    tuple val(taxa), val(merged_cluster), val(clusters), path(mash_paths, stageAs: "?/*"), val(status), path(assembly), val(sample)
+    tuple val(taxa), val(merged_cluster), val(clusters), path(mash_paths, stageAs: "?/*"), path(assembly), val(sample)
 
     output:
     path "best_cluster.csv", emit: best_cluster

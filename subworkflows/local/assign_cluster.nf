@@ -72,28 +72,51 @@ workflow CLUSTER {
     //
 
     if ( params.resolve_merged ) {
-        // load merged clusters
+        // load merged clusters & determine if the cluster exists in the BigBacter database
         ASSIGN_PP_CLUSTER
             .out
             .merged_clusters
             .splitCsv(header: true)
-            .map { tuple(it.taxa, it.merged_cluster, it.cluster, file(params.db).resolve(it.taxa).resolve("clusters").resolve(it.cluster).resolve("mash"), get_status(it.taxa, it.cluster)) }
-            .filter { taxa, merged_cluster, cluster, mash_path, status -> status }
+            .map { tuple(it.taxa, it.merged_cluster, it.cluster, get_status(it.taxa, it.cluster.padLeft(5, "0"))) }
+            .set{ merged_clusters }
+        
+        // make sure that this merge didn't occur on a fresh PopPUNK database
+        merged_clusters
+            .map { taxa, merged_cluster, cluster, bb_status -> [ taxa, merged_cluster, cluster, bb_status ? 1 : 0 ] }
             .groupTuple(by: [0,1])
-            .combine(cluster_results.map { sample, cluster, taxa, assembly -> [ taxa, cluster, assembly, sample ] }, by: [0,1] )
+            .map { taxa, merged_cluster, clusters, bb_status -> [ taxa, merged_cluster, bb_status.sum() == 0 ] }
+            .combine(merged_clusters, by: [0,1])
             .set { merged_clusters }
 
+        // split out any merges that did occur on a fresh PopPUNK database and arbitrarily select a cluster from merged list
+        merged_clusters
+            .filter { taxa, merged_cluster, pp_status, cluster, bb_status -> pp_status }
+            .groupTuple(by: [0,1])
+            .map { taxa, merged_cluster, pp_status, clusters, bb_status -> [ taxa, merged_cluster, clusters.get(0) ] }
+            .combine(cluster_results.map { sample, cluster, taxa, assembly -> [ taxa, cluster, sample ] }, by: [0,1])
+            .map { taxa, merged_cluster, cluster, sample -> [ sample, taxa, cluster ] }
+            .set { fresh_merges }
+        
+        // split out the remaining merges
+        merged_clusters
+            .filter { taxa, merged_cluster, pp_status, cluster, bb_status -> ! pp_status && bb_status }
+            .map { taxa, merged_cluster, pp_status, cluster, bb_status -> [ taxa, merged_cluster, cluster, file(params.db).resolve(taxa).resolve("clusters").resolve(cluster).resolve("mash") ] }
+            .groupTuple(by: [0,1])
+            .combine(cluster_results.map { sample, cluster, taxa, assembly -> [ taxa, cluster, assembly, sample ] }, by: [0,1] )
+            .set { stale_merges }
+
         RESOLVE_MERGED_CLUSTERS (
-            merged_clusters
+            stale_merges
         )
 
-        
         cluster_results
             .map { sample, cluster, taxa, assembly -> [ sample, taxa, cluster, cluster.contains("_") ] }
-            .filter { sample, taxa, cluster, merge_status -> params.resolve_merged ? ! merge_status : true }
+            .filter { sample, taxa, cluster, merge_status -> ! merge_status }
             .map { sample, taxa, cluster, merge_status -> [ sample, taxa, cluster ] }
             .concat(RESOLVE_MERGED_CLUSTERS.out.best_cluster.splitCsv(header: false))
+            .concat(fresh_merges)
             .set { cluster_results }
+
     }
     if ( ! params.resolve_merged ) {
         // load merged clusters
