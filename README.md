@@ -9,4 +9,4 @@ This is accomplished by:
 
 Please see the [wiki](https://github.com/DOH-JDJ0303/bigbacter-nf/wiki) for more information.
 
-BigBacter was originally written by Jared Johnson.
+BigBacter was originally written by Jared Johnson for the Washington State Department of Health.
