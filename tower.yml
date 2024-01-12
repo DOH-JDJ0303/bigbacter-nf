@@ -1,5 +1,21 @@
 reports:
-  multiqc_report.html:
+  "**/multiqc_report.html":
     display: "MultiQC HTML report"
-  samplesheet.csv:
+  "**/samplesheet.csv":
     display: "Auto-created samplesheet with collated metadata and FASTQ paths"
+  "**/software_versions.yml":
+    display: "Software versions"
+  "**/*-summary.tsv":
+    display: "Run summary"
+  "**/**/poppunk/*":
+    display: "PopPUNK files"
+  "**/**/**/*-summary.tsv":
+    display: "Species-cluster summary"
+  "**/**/**/*.jpg":
+    display: "Figures"
+  "**/**/**/mash/*":
+    display: "Mash files"
+  "**/**/**/variants/core/*":
+    display: "Core SNP files"
+  "**/**/**/variants/per_sample/*":
+    display: "Per-sample SNP files"
