@@ -38,6 +38,12 @@ RUN apt-get update && apt-get -y --no-install-recommends install \
     gzip \
     curl \
     wget \
+    r-base \
+    r-base-dev \
     bzip2 && \
     apt-get autoclean && \
     rm -rf /var/lib/apt/lists/*
+    
+    # required R packages
+    RUN R -e "install.packages(c('tidyverse', 'phangorn','BiocManager'), repos='https://cran.rstudio.com/')"
+    RUN R -e "BiocManager::install('treeio'); BiocManager::install('ggtree')"
