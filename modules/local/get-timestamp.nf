@@ -1,5 +1,5 @@
 process TIMESTAMP {
-    container = 'ubuntu:jammy'
+    container = 'docker.io/jdj0303/bigbacter-base:1.0.0'
 
     output:
     stdout
