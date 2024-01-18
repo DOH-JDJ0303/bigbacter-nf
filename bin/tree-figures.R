@@ -9,9 +9,16 @@ library(ggtree)
 args <- commandArgs(trailingOnly=TRUE)
 tree_path <- args[1]
 manifest_path <- args[2]
+tree_type <- args[3]
+tree_method <- args[4]
+prefix <- args[5]
+core_stats <- args[6]
 
-
-
+#---- EXTRACT BASE FILENAME ----#
+ext.type <- str_replace_all(tolower(tree_type), pattern = " ", replacement = "-")
+ext.method <- sapply( tree_method, function(x)
+                  paste(substr(strsplit(x, " ")[[1]], 1, 1), collapse="") )
+filebase <- paste(prefix,ext.type,ext.method, sep = "_")
 #---- LOAD TREE & CLEAN UP ----#
 # load tree
 tree <- read.tree(tree_path)
@@ -20,7 +27,7 @@ tree$tip.label <- str_remove_all(tree$tip.label, pattern = "'")
 # set negative branch lengths to zero
 if(sum(tree$edge.length < 0) > 0){
   tree$edge.length[tree$edge.length < 0] <- 0
-  write.tree(tree, "corrected.nwk")
+  write.tree(tree, paste0(filebase,".corrected.nwk"))
 }
 # determine if tree can be rooted
 n_iso <- tree$tip.label %>% length()
@@ -38,7 +45,25 @@ df.meta <- data.frame(sample = tree$tip.label, font_face = "plain", status = "OL
          status = case_when(sample %in% df.manifest$sample ~ "NEW",
                           TRUE ~ status))
 
+#---- RESCALE BRANCH LENGTHS (CORE SNPS ONLY) ----#
+if(file.exists(core_stats) & tree_method == "Maximum Likelihood"){
+  ref_length <- read_tsv(core_stats) %>%
+    slice(1) %>%
+    .$LENGTH
+  tree$edge.length <- as.numeric(tree$edge.length) * as.numeric(ref_length)
+  x_label <- "Estimated Nucleotide Substitutions"
+  write.tree(tree, paste0(filebase,".scaled.nwk"))
+}else{
+  x_label <- "Divergence"
+}
+
 #---- PLOT TREE ----#
+# simplify bootstrapping values, if calculated
+if(!is.null(tree$node.label)){
+  tree$node.label <- as.numeric(tree$node.label) > 70
+  tree$node.label[tree$node.label] <- NA
+}
+
 # initial plot
 p_tree <- ggtree(tree)
 # get sizing info
@@ -62,8 +87,18 @@ x_max=as.numeric(maxs[2])*1.2
 p_tree <- p_tree%<+%df.meta+
   geom_tiplab(aes(fontface = font_face, color = status))+
   scale_color_manual(values = c("black", "darkgrey"), breaks = c("NEW", "OLD"))+
-  theme(legend.position = "none")+
-  xlim(0,as.numeric(x_max))
+  theme_tree2(legend.position = "none")+
+  xlim(0,as.numeric(x_max))+
+  labs(x=x_label)
+# add bootstrap values if calculated
+if(!is.null(tree$node.label)){
+  p_tree <- p_tree+
+    geom_nodepoint(aes(shape = label), size = 1)+
+    scale_shape_manual(values = c(8))
+}
+# add tree label
+p_tree <- p_tree+
+  ggtitle(paste0("Input: ",tree_type,"\nMethod: ",tree_method))
 # save image
 n_iso <- p_tree$data %>%
   drop_na() %>%
@@ -79,4 +114,4 @@ if(hght < 10){
 }
 
 # save plot
-ggsave(plot = p_tree, filename = paste0(tree_path,".jpg"), width = wdth, height = hght, dpi = 300, limitsize = F)
+ggsave(plot = p_tree, filename = paste0(filebase,".jpg"), width = wdth, height = hght, dpi = 300, limitsize = F)

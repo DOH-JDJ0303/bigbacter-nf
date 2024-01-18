@@ -134,19 +134,22 @@ workflow BIGBACTER {
    )
 
    // MODULE: Make tree figures and distance matrix
+   // Add core SNP stats
+   VARIANTS.out.core_tree.map{ taxa, cluster, tree, type, method -> [ taxa, cluster, tree, type, method ] }.join(core_stats, by: [0,1]).set{ core_tree }
    CORE_TREE_FIGURE(
-    VARIANTS.out.core_tree,
+    core_tree,
     params.input,
     timestamp
    )
-
+   // Add placeholder for core stats and update type and method
+   MASH.out.mash_tree.map{ taxa, cluster, tree -> [ taxa, cluster, tree, "Mash distance", "Neighbor Joining", [] ] }.set{ mash_tree }
    MASH_TREE_FIGURE(
-    MASH.out.mash_tree,
+    mash_tree,
     params.input,
     timestamp
    )
    
-   VARIANTS.out.core_dist.map{taxa, cluster, dist -> [taxa, cluster, dist]}.join(VARIANTS.out.core_tree.map{ taxa, cluster, tree -> [taxa, cluster, tree]}, by: [0,1]).set{dist_mat_input}
+   VARIANTS.out.core_dist.map{taxa, cluster, dist -> [taxa, cluster, dist]}.join(VARIANTS.out.core_tree.map{ taxa, cluster, tree, type, method -> [taxa, cluster, tree]}, by: [0,1]).set{dist_mat_input}
    DIST_MAT(
     dist_mat_input,
     params.input,

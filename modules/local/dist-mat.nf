@@ -15,11 +15,11 @@ process DIST_MAT {
 
     shell:
     args   = task.ext.args ?: ''
-    prefix = "${timestamp}-${taxa}-${cluster}-snp-matrix"
+    prefix = "${timestamp}-${taxa}-${cluster}"
     '''
     # make figure
     dist-mat.R !{dist} !{tree} !{manifest}
     # rename figure
-    mv snp-matrix.jpg !{prefix}.jpg
+    mv snp-matrix.jpg "!{prefix}_core-snps_matrix.jpg"
     '''
 }

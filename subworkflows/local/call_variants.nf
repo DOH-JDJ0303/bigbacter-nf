@@ -91,7 +91,9 @@ workflow VARIANTS {
     )
     ch_versions = ch_versions.mix(RAPIDNJ.out.versions)
     // Combine the outputs of IQTREE and RAPIDNJ
-    IQTREE.out.result.concat(RAPIDNJ.out.result).set{core_tree}
+    IQTREE.out.result.map{ taxa, cluster, tree -> [taxa, cluster, tree, "core SNPs", "Maximum Likelihood"] }.set{ ml_tree }
+    RAPIDNJ.out.result.map{ taxa, cluster, tree -> [taxa, cluster, tree, "core SNPs", "Neighbor Joining"] }.set{ nj_tree }
+    ml_tree.concat(nj_tree).set{core_tree}
 
     emit:
     snp_files     = snp_files                // channel: [taxa, cluster, ref, new_snippy, old_snippy]

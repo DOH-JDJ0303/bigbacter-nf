@@ -3,7 +3,7 @@ process TREE_FIGURE {
     label 'process_low'
 
     input:
-    tuple val(taxa), val(cluster), path(tree)
+    tuple val(taxa), val(cluster), path(tree), val(tree_type), val(tree_method), path(core_stats)
     path manifest
     val timestamp
 
@@ -17,6 +17,6 @@ process TREE_FIGURE {
     shell:
     prefix = "${timestamp}-${taxa}-${cluster}"
     '''
-    tree-figures.R !{tree} !{manifest}
+    tree-figures.R !{tree} !{manifest} "!{tree_type}" "!{tree_method}" "!{prefix}" !{core_stats}
     '''
 }
