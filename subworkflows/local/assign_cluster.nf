@@ -30,6 +30,30 @@ def get_status ( taxa, cluster ) {
     return status        
 }
 
+// get list of isolates in each cluster for a taxa
+def db_taxa_clusters ( taxa ) {
+    // determine path to taxa database
+    clusters_path = file(params.db).resolve(taxa).resolve("clusters")
+    // check that a bigbacter database exists for the taxa
+    if(!clusters_path.exists()) {
+        exit 1, "ERROR: No BigBacter database exists for \n${taxa} at the provided path: ${params.db}"
+    }
+    // get list of isolates associated with each cluster
+    db_info_file = file(params.outdir).resolve(taxa+"-db-info.txt")
+    db_info_file.delete()
+    clusters = clusters_path.list()
+    for ( cluster in clusters ) {
+        // list isolates
+        isolates = clusters_path.resolve(cluster).resolve("snippy").list()
+        // create list
+        for ( iso in isolates ) {
+            row = taxa+"\t"+cluster+"\t"+iso.replace(".tar.gz", "")+"\n"
+            db_info_file.append(row) 
+        }
+    }
+    return db_info_file
+}
+
 workflow CLUSTER {
     take:
     manifest   // channel: [ val(sample), val(taxa), file(assembly), file(fastq_1), file(fastq_2) ]
@@ -62,9 +86,10 @@ workflow CLUSTER {
     ASSIGN_PP_CLUSTER
         .out
         .cluster_results
+        .map { taxa, results -> [ results ] }
         .splitCsv(header: true)
-        .map { tuple(it.Taxon, it.Cluster) } // 'Taxon' == 'sample' != 'taxa' .
-        .join(manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [sample, taxa, assembly] }, by: 0)
+        .map { tuple(it.Taxon.get(0), it.Cluster.get(0)) } // 'Taxon' == 'sample' != 'taxa'
+        .join(manifest.map { sample, taxa, assembly, fastq_1, fastq_2  -> [ sample, taxa ]}, by: 0)
         .set {cluster_results}
 
     // 
@@ -72,15 +97,23 @@ workflow CLUSTER {
     //
 
     if ( params.resolve_merged ) {
-        // load merged clusters & determine if the cluster exists in the BigBacter database
+        // get list of isolates that belong to each cluster in the BiBacter database
+        manifest
+            .map{ sample, taxa, assembly, fastq_1, fastq_2 -> taxa }
+            .distinct()
+            .map{ taxa -> [ taxa, db_taxa_clusters(taxa) ] }
+            .set{ db_taxa_clusters }
+        
+        // load merged clusters & determine if each unmerged cluster exists in the BigBacter database
         ASSIGN_PP_CLUSTER
             .out
             .merged_clusters
+            .map { taxa, results -> [ results ] }
             .splitCsv(header: true)
-            .map { tuple(it.taxa, it.merged_cluster, it.cluster, get_status(it.taxa, it.cluster.padLeft(5, "0"))) }
+            .map { tuple(it.taxa.get(0), it.merged_cluster.get(0), it.cluster.get(0), get_status(it.taxa.get(0), it.cluster.get(0).padLeft(5, "0"))) }
             .set{ merged_clusters }
         
-        // make sure that this merge didn't occur on a fresh PopPUNK database
+        // make sure that this merge didn't occur on two or more unmerged clusters that have not been observed yet by BigBacter
         merged_clusters
             .map { taxa, merged_cluster, cluster, bb_status -> [ taxa, merged_cluster, cluster, bb_status ? 1 : 0 ] }
             .groupTuple(by: [0,1])
@@ -88,29 +121,31 @@ workflow CLUSTER {
             .combine(merged_clusters, by: [0,1])
             .set { merged_clusters }
 
-        // split out any merges that did occur on a fresh PopPUNK database and arbitrarily select a cluster from merged list
+        // split out any merges that did occur on clusters that have not been observed and arbitrarily select an unmerged cluster
         merged_clusters
             .filter { taxa, merged_cluster, pp_status, cluster, bb_status -> pp_status }
             .groupTuple(by: [0,1])
-            .map { taxa, merged_cluster, pp_status, clusters, bb_status -> [ taxa, merged_cluster, clusters.get(0) ] }
-            .combine(cluster_results.map { sample, cluster, taxa, assembly -> [ taxa, cluster, sample ] }, by: [0,1])
-            .map { taxa, merged_cluster, cluster, sample -> [ sample, taxa, cluster ] }
+            .map { taxa, merged_cluster, pp_status, unmerged_clusters, bb_status -> [ taxa, merged_cluster, unmerged_clusters.get(0) ] }
+            .combine(cluster_results.map { sample, cluster, taxa -> [ taxa, cluster, sample ] }, by: [0,1])
+            .map { taxa, merged_cluster, unmerged_cluster, sample -> [ sample, taxa, unmerged_cluster ] }
             .set { fresh_merges }
-        
-        // split out the remaining merges
+
+        // split out the remaining merges and join with the BigBacter database info and Jaccard distance for that taxa
         merged_clusters
-            .filter { taxa, merged_cluster, pp_status, cluster, bb_status -> ! pp_status && bb_status }
-            .map { taxa, merged_cluster, pp_status, cluster, bb_status -> [ taxa, merged_cluster, cluster, file(params.db).resolve(taxa).resolve("clusters").resolve(cluster).resolve("mash") ] }
-            .groupTuple(by: [0,1])
-            .combine(cluster_results.map { sample, cluster, taxa, assembly -> [ taxa, cluster, assembly, sample ] }, by: [0,1] )
-            .set { stale_merges }
+            .filter { taxa, merged_cluster, pp_status, unmerged_cluster, bb_status -> ! pp_status && bb_status }
+            .map { taxa, merged_cluster, pp_status, unmerged_cluster, bb_status -> [ taxa, merged_cluster ] }
+            .distinct()
+            .combine(db_taxa_clusters, by: 0)
+            .combine(ASSIGN_PP_CLUSTER.out.jaccard_dist, by: 0)
+            .combine(cluster_results.map { sample, merged_cluster, taxa -> [ taxa, merged_cluster, sample ] }, by: [0, 1])
+            .set {stale_merges } // [ taxa, merged_cluster, db_info, dist ]
 
         RESOLVE_MERGED_CLUSTERS (
             stale_merges
         )
 
         cluster_results
-            .map { sample, cluster, taxa, assembly -> [ sample, taxa, cluster, cluster.contains("_") ] }
+            .map { sample, cluster, taxa -> [ sample, taxa, cluster, cluster.contains("_") ] }
             .filter { sample, taxa, cluster, merge_status -> ! merge_status }
             .map { sample, taxa, cluster, merge_status -> [ sample, taxa, cluster ] }
             .concat(RESOLVE_MERGED_CLUSTERS.out.best_cluster.splitCsv(header: false))
@@ -123,14 +158,15 @@ workflow CLUSTER {
         ASSIGN_PP_CLUSTER
             .out
             .merged_clusters
+            .map {taxa, results -> [ results ]}
             .splitCsv(header: true)
-            .map { tuple(it.taxa, it.merged_cluster) }
+            .map { tuple(it.taxa.get(0), it.merged_cluster.get(0)) }
             .distinct()
             .map { taxa, merged_cluster -> println( "\nWARNING: You have selected not to resolve " + taxa + " cluster "+ merged_cluster +". \nThis can lead to missed genetic relationships. See https://github.com/DOH-JDJ0303/bigbacter-nf for more information.\n") }
         
         // remove status from 
         cluster_results
-            .map { sample, cluster, taxa, assembly ->  [sample, taxa, cluster ] }
+            .map { sample, cluster, taxa ->  [sample, taxa, cluster ] }
             .set { cluster_results }
     }
     

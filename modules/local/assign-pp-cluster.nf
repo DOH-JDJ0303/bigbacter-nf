@@ -7,11 +7,12 @@ process ASSIGN_PP_CLUSTER {
     val timestamp
 
     output:
-    path 'pp_results.csv',                                  emit: cluster_results
-    path 'merged_clusters.csv',                             emit: merged_clusters
+    tuple val(taxa), path('clusters.csv'),                  emit: cluster_results
+    tuple val(taxa), path('merged_clusters.csv'),           emit: merged_clusters
+    tuple val(taxa), path('pp-core-acc-dist.txt'),          emit: core_acc_dist
+    tuple val(taxa), path('pp-jaccard-dist.txt'),      emit: jaccard_dist
     tuple val(taxa), path('*.tar.gz', includeInputs: true), emit: new_pp_db
     path 'versions.yml',                                    emit: versions
-
 
     when:
     task.ext.when == null || task.ext.when
@@ -26,22 +27,22 @@ process ASSIGN_PP_CLUSTER {
     db=${db_comp%.tar.gz}
     tar -xzvf !{db} -C ./
 
-    #### SETTING UP FOR POPPUNK ####
-    # create qfile for PopPUNK
+    #### CREATE QFILE ####
     echo !{sample.join(',')} | tr ',' '\n' > s_col
     echo !{assembly.join(',')} | tr ',' '\n' > a_col
-    paste s_col a_col -d ',' > ALL
-    # exclude samples that have already been run
-    old_s=$(cat */*_clusters.csv | tr ',' '\t' | cut -f 1 | tr '\n\t\r$ ' '@' | sed 's/^/@/g')
-    for line in $(cat ALL)
-    do
-        s=$(echo ${line} | tr ',' '\t' | cut -f 1)
-        if [[ "${old_s}" != *"@${s}@"*  ]]
-        then
-            echo ${line} | tr ',' '\t' >> qfile.txt
-        fi
-    done
-    #### RUN POPPUNK ####
+    paste s_col a_col > qfile.txt
+
+    #### REMOVE SAMPLES THAT HAVE BEEN RUN BEFORE ####
+    cat s_col | sort > new_samples
+    cat */*_clusters.csv | cut -f 1 -d ',' | sort > old_samples
+    comm -12 new_samples old_samples > rerun_list
+    if [ -s rerun_list ]
+    then
+        echo -e "\nSome of these samples have already been run. Removing them from the PopPUNK database.\n"
+        poppunk --qc-db --ref-db ${db} --remove-samples rerun_list
+    fi
+
+    #### ASSIGN CLUSTERS ####
     # check for new samples (qfile is not empty)
     if [ -s qfile.txt ]
     then
@@ -57,12 +58,17 @@ process ASSIGN_PP_CLUSTER {
         tar -czvf !{timestamp}.tar.gz !{timestamp} && rm -r ${db}*
     fi
 
-    #### RENAME RESULTS ####
-    cp $(ls */*_clusters.csv | grep -v "unword") pp_results.csv
+    #### CALCULATE DISTANCES ####
+    # core & accessory distances
+    sketchlib query dist --cpus !{task.cpus} */*.h5 > pp-core-acc-dist.txt
+    sketchlib query jaccard --cpus !{task.cpus} */*.h5 > pp-jaccard-dist.txt
 
-    #### SPLIT MERGED CLUSTERS ####
+    #### RENAME CLUSTER RESULTS ####
+    cp $(ls */*_clusters.csv | grep -v "unword") clusters.csv
+    
+    #### CREATE LIST OF MERGED CLUSTERS #### 
     echo "taxa,merged_cluster,cluster" > merged_clusters.csv
-    for m in $(cat pp_results.csv | cut -f 2 -d ',' | grep '_' | sort | uniq)
+    for m in $(cat clusters.csv | cut -f 2 -d ',' | grep '_' | sort | uniq)
     do
         for c in $(echo ${m} | tr '_' ' ')
         do
