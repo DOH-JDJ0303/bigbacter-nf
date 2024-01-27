@@ -21,7 +21,7 @@ process DIST_MAT {
     shell:
     args   = task.ext.args ?: ''
     prefix = "${timestamp}-${taxa}-${cluster}"
-    '''
+    '''    
     # make figure
     dist-figures.R "!{dist}" "!{tree}" "!{manifest}" "!{input_format}" "!{input_type}" "!{threshold}" "!{prefix}"
     '''

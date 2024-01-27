@@ -57,10 +57,11 @@ if(input_format == "wide"){
     rename(ID1 = 1,
            ID2 = 2,
            dist = 3) %>%
+    filter(ID1 %in% sample_order) %>%
+    filter(ID2 %in% sample_order) %>%
     mutate(ID1 = factor(ID1, levels = sample_order),
            ID2 = factor(ID2, levels = sample_order)) %>%
-    select(1:3) %>%
-    drop_na()
+    select(1:3)
   ## create diagonal
   diag <- data.frame(ID1 = unique(c(upper$ID1,upper$ID2))) %>%
     mutate(ID2 = ID1,
@@ -74,7 +75,8 @@ if(input_format == "wide"){
     select(ID1, ID2, dist)
   ## combine and filter unique
   df.long <- do.call(rbind, list(upper, diag, lower)) %>%
-    unique()
+    unique() %>%
+    drop_na()
   # create wide format
   df.wide <- df.long %>%
     pivot_wider(names_from = ID2, values_from = dist) %>%
@@ -102,7 +104,7 @@ df.meta <- df %>%
                           TRUE ~ font_color)) %>%
   arrange(sample)
 
-  #---- PLOT DISTANCE MATRIX ----#
+#---- PLOT DISTANCE MATRIX ----#
 p_mat <- ggplot(df, aes(x=ID1, y=ID2, fill=dist))+
   geom_tile()+
   geom_text(data=filter(df, dist < threshold), aes(label=dist))+

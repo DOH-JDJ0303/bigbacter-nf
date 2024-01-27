@@ -13,7 +13,7 @@ def get_ppdb ( taxa ) {
     taxa_path = file(params.db).resolve(taxa)
     // check that a bigbacter database exists for the taxa
     if(!taxa_path.exists()) {
-        exit 1, "ERROR: No BigBacter database exists for \n${taxa} at the provided path: ${params.db}"
+        exit 1, "ERROR: No BigBacter database exists for ${taxa} at the provided path: ${params.db}"
     }
     // get most recent PopPunk database
     pp_db = taxa_path.resolve("pp_db")
@@ -33,10 +33,6 @@ def get_status ( taxa, cluster ) {
 def db_taxa_clusters ( taxa , timestamp ) {
     // determine path to taxa database
     clusters_path = file(params.db).resolve(taxa).resolve("clusters")
-    // check that a bigbacter database exists for the taxa
-    if(!clusters_path.exists()) {
-        exit 1, "ERROR: No BigBacter database exists for \n${taxa} at the provided path: ${params.db}"
-    }
     // get list of isolates associated with each cluster
     taxadir = file(params.outdir).resolve(timestamp.toString()).resolve(taxa)
     taxadir.mkdirs()
