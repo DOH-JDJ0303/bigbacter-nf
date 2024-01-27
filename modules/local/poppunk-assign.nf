@@ -60,11 +60,11 @@ process POPPUNK_ASSIGN {
 
     #### CALCULATE DISTANCES ####
     # core & accessory distances
-    sketchlib query dist --cpus !{task.cpus} */*.h5 | gzip > pp-core-acc-dist.txt.gz
-    sketchlib query jaccard --cpus !{task.cpus} */*.h5 | gzip > pp-jaccard-dist.txt.gz
+    sketchlib query dist --cpus !{task.cpus} */*[^refs].h5 | gzip > pp-core-acc-dist.txt.gz
+    sketchlib query jaccard --cpus !{task.cpus} */*[^refs].h5 | gzip > pp-jaccard-dist.txt.gz
 
     #### RENAME CLUSTER RESULTS ####
-    cp $(ls */*_clusters.csv | grep -v "unword") clusters.csv
+    cp */*[^_unword]_clusters.csv clusters.csv
     
     #### CREATE LIST OF MERGED CLUSTERS #### 
     echo "taxa,merged_cluster,cluster" > merged_clusters.csv

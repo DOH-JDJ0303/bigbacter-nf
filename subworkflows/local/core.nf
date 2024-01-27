@@ -105,12 +105,6 @@ workflow CORE {
         timestamp
     )
     ch_versions = ch_versions.mix(RAPIDNJ.out.versions)
-
-    IQTREE
-        .out
-        .result
-        .map{ taxa, cluster, tree -> [taxa, cluster, tree, "core SNPs", "Maximum Likelihood"] }
-        .view()
     
     // Combine the outputs of IQTREE and RAPIDNJ and add core SNP stats
     IQTREE
