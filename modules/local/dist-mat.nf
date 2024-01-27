@@ -1,14 +1,19 @@
 process DIST_MAT {
     tag "${taxa}_${cluster}"
     label 'process_low'
+    stageInMode 'copy'
 
     input:
     tuple val(taxa), val(cluster), path(dist), path(tree)
     path manifest
+    val input_format
+    val input_type
+    val threshold
     val timestamp
 
     output:
     path "*.jpg"
+    path "*.csv"
 
     when:
     task.ext.when == null || task.ext.when
@@ -18,8 +23,6 @@ process DIST_MAT {
     prefix = "${timestamp}-${taxa}-${cluster}"
     '''
     # make figure
-    dist-mat.R !{dist} !{tree} !{manifest}
-    # rename figure
-    mv snp-matrix.jpg "!{prefix}_core-snps_matrix.jpg"
+    dist-figures.R "!{dist}" "!{tree}" "!{manifest}" "!{input_format}" "!{input_type}" "!{threshold}" "!{prefix}"
     '''
 }

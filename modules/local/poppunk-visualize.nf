@@ -7,7 +7,7 @@ process POPPUNK_VISUAL {
     val timestamp
 
     output:
-    path "${prefix}-poppunk*",    emit: results
+    path "${prefix}-pp*",    emit: results
     path 'versions.yml',          emit: versions
 
 
@@ -25,10 +25,10 @@ process POPPUNK_VISUAL {
     tar -xzvf !{db} -C ./
 
     # create visuals
-    poppunk_visualise --ref-db ${db} --output !{prefix}-poppunk !{args} 
+    poppunk_visualise --ref-db ${db} --output !{prefix}-pp !{args} 
     
     # move files to simplify output
-    mv !{prefix}-poppunk/* ./ && rm -r !{prefix}-poppunk/
+    mv !{prefix}-pp/* ./ && rm -r !{prefix}-pp/
 
     # version info
     echo "!{task.process}:\n    poppunk: $(poppunk_assign --version | cut -f 2 -d ' ' | tr -d '\n\r\t ')" > versions.yml

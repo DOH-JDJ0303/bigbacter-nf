@@ -37,17 +37,14 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
-include { INPUT_CHECK                     } from '../subworkflows/local/input_check'
-include { CLUSTER                         } from '../subworkflows/local/assign_cluster'
-include { VARIANTS                        } from '../subworkflows/local/call_variants'
-include { MASH                            } from '../subworkflows/local/mash'
-include { PUSH_FILES                      } from '../subworkflows/local/push_files'
+include { INPUT_CHECK      } from '../subworkflows/local/input_check'
+include { CLUSTER          } from '../subworkflows/local/cluster'
+include { CORE             } from '../subworkflows/local/core'
+include { ACCESSORY        } from '../subworkflows/local/accessory'
+include { PUSH_FILES       } from '../subworkflows/local/push_files'
 
-include { DIST_MAT                        } from '../modules/local/dist-mat'
-include { TREE_FIGURE as MASH_TREE_FIGURE } from '../modules/local/tree-figures'
-include { TREE_FIGURE as CORE_TREE_FIGURE } from '../modules/local/tree-figures'
-include { SUMMARY_TABLE                   } from '../modules/local/summary-tables'
-include { COMBINED_SUMMARY                } from '../modules/local/combined-summary'
+include { SUMMARY_TABLE    } from '../modules/local/summary-tables'
+include { COMBINED_SUMMARY } from '../modules/local/combined-summary'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -75,24 +72,33 @@ workflow BIGBACTER {
 
     ch_versions = Channel.empty()
 
-    //
-    // SUBWORKFLOW: Read in samplesheet, validate and stage input files
-    //
-    INPUT_CHECK (
-       ch_input
-    )
-    ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
-    // The 'single_end' field is removed because samples must be paired end.
-    INPUT_CHECK
-      .out.manifest
-      .map{ tuple(it.sample, it.taxa, it.assembly, it.fastq_1, it.fastq_2)}
-      .set{manifest}
-
     // Get timestamp - used to name cache and some new files
     TIMESTAMP()
     TIMESTAMP
         .out
         .set { timestamp }
+
+    //
+    // SUBWORKFLOW: Read in samplesheet, validate and stage input files
+    //
+    INPUT_CHECK (
+       ch_input,
+       timestamp
+    )
+    ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
+    // The 'single_end' field is removed because samples must be paired end.
+    INPUT_CHECK
+      .out
+      .manifest
+      .map{ tuple(it.sample, it.taxa, it.assembly, it.fastq_1, it.fastq_2)}
+      .set{manifest}
+
+    // set validated manifest path
+    INPUT_CHECK
+      .out
+      .csv
+      .set{ manifest_path }
+        
 
     // SUBWORKFLOW: Assign PopPUNK clusters
     CLUSTER(
@@ -105,66 +111,47 @@ workflow BIGBACTER {
     CLUSTER.out.sample_cluster_status.map { sample, cluster, status -> [sample, cluster, status] }.set { sample_cluster_status }
     manifest.join(sample_cluster_status).set { manifest }
     
-    // SUBWORKFLOW: Call variants
-    VARIANTS(
-        manifest, 
-        timestamp
-    )
-    ch_versions = ch_versions.mix(VARIANTS.out.versions)
-
-    // SUBWORKFLOW: Mash comparisons
-    MASH(
+    // SUBWORKFLOW: Core genome analysis
+    CORE(
         manifest,
+        manifest_path, 
         timestamp
     )
-    ch_versions = ch_versions.mix(MASH.out.versions)
+    ch_versions = ch_versions.mix(CORE.out.versions)
+
+    // SUBWORKFLOW: Accessory genome analysis
+    ACCESSORY(
+        CLUSTER.out.core_acc_dist,
+        CORE.out.tree,
+        manifest_path,
+        timestamp
+    )
+    ch_versions = ch_versions.mix(ACCESSORY.out.versions)
 
    // MODULE: Make Summary table
-   VARIANTS.out.core_stats.map{taxa, cluster, stats -> [taxa, cluster, stats]}.set{ core_stats }
-   VARIANTS.out.core_dist.map{taxa, cluster, dist -> [taxa, cluster, dist]}.join(core_stats, by: [0,1]).set{core_summary}
-   manifest.map{sample, taxa, assembly, fastq_1, fastq_2, cluster, status -> [sample]}.collect().set{new_samples}
+   CORE.out.dist.join(CORE.out.stats, by: [0,1]).set{core_summary}
    SUMMARY_TABLE(
     core_summary,
-    new_samples,
+    manifest_path,
     timestamp
    )
    COMBINED_SUMMARY(
-    SUMMARY_TABLE.out.summary.map{taxa, cluster, summary -> [summary]}.collect(),
-    timestamp
-   )
-
-   // MODULE: Make tree figures and distance matrix
-   // Add core SNP stats
-   VARIANTS.out.core_tree.map{ taxa, cluster, tree, type, method -> [ taxa, cluster, tree, type, method ] }.join(core_stats, by: [0,1]).set{ core_tree }
-   CORE_TREE_FIGURE(
-    core_tree,
-    params.input,
-    timestamp
-   )
-   // Add placeholder for core stats and update type and method
-   MASH.out.mash_tree.map{ taxa, cluster, tree -> [ taxa, cluster, tree, "Mash distance", "Neighbor Joining", [] ] }.set{ mash_tree }
-   MASH_TREE_FIGURE(
-    mash_tree,
-    params.input,
-    timestamp
-   )
-   
-   VARIANTS.out.core_dist.map{taxa, cluster, dist -> [taxa, cluster, dist]}.join(VARIANTS.out.core_tree.map{ taxa, cluster, tree, type, method -> [taxa, cluster, tree]}, by: [0,1]).set{dist_mat_input}
-   DIST_MAT(
-    dist_mat_input,
-    params.input,
-    timestamp
+       SUMMARY_TABLE.out.summary.map{taxa, cluster, summary -> [ summary ]}.collect(),
+       timestamp
    )
    
    // SUBWORKFLOW: Push new BigBacter database
    // Taxa-specific files
-   CLUSTER.out.new_pp_db.set{ taxa_files }
+   CLUSTER
+       .out
+       .new_pp_db
+       .set{ taxa_files }
    // Cluster-specific files
-   MASH.out.mash_files.map{ taxa, cluster, new_sketch, ava -> [taxa, cluster, new_sketch]}.set{ mash_files } 
-   VARIANTS.out.snp_files
-       .map{ taxa, cluster, ref, new_snippy, old_snippy -> [taxa, cluster, ref, new_snippy] }
-       .join(mash_files, by: [0,1])
-       .set{ cluster_files }
+   CORE
+      .out
+      .snp_files
+      .map{ taxa, cluster, ref, new_snippy, old_snippy -> [ taxa, cluster, ref, new_snippy ] }
+      .set{ cluster_files }
 
    if(params.push){
     PUSH_FILES(

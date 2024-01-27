@@ -4,7 +4,7 @@ process SUMMARY_TABLE {
 
     input:
     tuple val(taxa), val(cluster), path(dist), path(stats)
-    val new_samples
+    path manifest
     val timestamp
 
     output:
@@ -15,8 +15,6 @@ process SUMMARY_TABLE {
 
     shell:
     '''
-    # create new sample list
-    echo !{new_samples.join(",")} | tr ',' '\n' > new_samples.txt
     # create summary table
     summary-report.R \
         "!{timestamp}" \
@@ -26,6 +24,6 @@ process SUMMARY_TABLE {
         "!{params.inter_link_cutoff}" \
         !{stats} \
         !{dist} \
-        new_samples.txt
+        !{manifest}
     '''
 }

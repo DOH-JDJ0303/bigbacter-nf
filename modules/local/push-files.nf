@@ -3,13 +3,12 @@ process PUSH_CLUSTER_FILES {
     label 'process_low'
 
     input:
-    tuple val(taxa), val(cluster), path(ref), path(new_snippy), path(sketch)
+    tuple val(taxa), val(cluster), path(ref), path(new_snippy)
     path summary // forces pipeline to wait till end
 
     output:
     path 'ref.fa.gz'
     path new_snippy
-    path sketch
     
     when:
     task.ext.when == null || task.ext.when

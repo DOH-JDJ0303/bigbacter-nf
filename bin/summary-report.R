@@ -12,11 +12,11 @@ strong_linkage_cutoff <- args[4]
 intermediate_linkage_cutoff <- args[5]
 core_s_file <- args[6]
 core_d_file <- args[7]
-new_sample_list <- args[8]
+manifest_path <- args[8]
   
 ### CORE SNPS ###
 # load list of new samples
-new_samples <- read.table(new_sample_list) %>% .$V1
+new_samples <- read.csv(manifest_path) %>% .$sample
 # load core SNP stats and add status (new or old)
 core_s <- read_tsv(core_s_file) %>%
   mutate(STATUS = "OLD")

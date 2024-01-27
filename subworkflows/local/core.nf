@@ -1,5 +1,5 @@
 //
-// Call variants per cluster
+// Perform core genome analysis within each cluster
 //
 
 include { SNIPPY_SINGLE } from '../../modules/local/snippy'
@@ -7,6 +7,9 @@ include { SNIPPY_CORE   } from '../../modules/local/snippy'
 include { SNP_DISTS     } from '../../modules/local/snp-dists'
 include { IQTREE        } from '../../modules/local/iqtree'
 include { RAPIDNJ       } from '../../modules/nf-core/rapidnj/main'
+include { TREE_FIGURE   } from '../../modules/local/tree-figures'
+include { DIST_MAT      } from '../../modules/local/dist-mat'
+
 
 
 // Function for counting the number of samples in an alignment file
@@ -16,9 +19,10 @@ def count_alignments ( aln_file ) {
     return total
 }
 
-workflow VARIANTS {
+workflow CORE {
     take:
     manifest      // channel: [ val(sample), val(taxa), path(assembly), path(fastq_1), path(fastq_2), val(cluster), val(status)]
+    manifest_file   // channel: [ val(new_samples) ]
     timestamp     // channel: val(timestamp)
 
     main:
@@ -56,8 +60,14 @@ workflow VARIANTS {
         .map {sample, taxa, cluster, status, ref, new_snps -> [taxa, cluster, status.get(0), ref.get(0), new_snps]}
         .set {clust_grps}
 
-    clust_grps.filter{ taxa, cluster, status, ref, new_snps -> ! status }.map{ taxa, cluster, status, ref, new_snps -> [taxa, cluster, ref, new_snps, []] }.set{ clust_grp_new }
-    clust_grps.filter{ taxa, cluster, status, ref, new_snps -> status }.map{ taxa, cluster, status, ref, new_snps -> [taxa, cluster, ref, new_snps, file(file(params.db) / taxa / "clusters" / cluster / "snippy", type: 'dir')] }.set{ clust_grp_old }
+    clust_grps
+        .filter{ taxa, cluster, status, ref, new_snps -> ! status }
+        .map{ taxa, cluster, status, ref, new_snps -> [taxa, cluster, ref, new_snps, []] }
+        .set{ clust_grp_new }
+    clust_grps
+        .filter{ taxa, cluster, status, ref, new_snps -> status }
+        .map{ taxa, cluster, status, ref, new_snps -> [taxa, cluster, ref, new_snps, file(file(params.db) / taxa / "clusters" / cluster / "snippy", type: 'dir')] }
+        .set{ clust_grp_old }
 
     clust_grp_new.concat(clust_grp_old).set { snp_files }
     
@@ -77,10 +87,15 @@ workflow VARIANTS {
 
     // Create SNP tree
     // count the number of samples in each alignment
-    SNIPPY_CORE.out.snp_aln.map{ taxa, cluster, aln, const_sites -> [taxa, cluster, aln, const_sites, count_alignments(aln)] }.set{ aln_w_count }
+    SNIPPY_CORE
+        .out
+        .snp_aln
+        .map{ taxa, cluster, aln, const_sites -> [taxa, cluster, aln, const_sites, count_alignments(aln)] }
+        .set{ aln_w_count }
+
     // MODULE: Run IQTREE - only performed for clusters with fewer than defined 'max_ml'
     IQTREE(
-        aln_w_count.filter{taxa, cluster, aln, const_sites, count -> count <= params.max_ml }.map{taxa, cluster, aln, const_sites, count -> [taxa, cluster, aln, const_sites]},
+        aln_w_count.filter{taxa, cluster, aln, const_sites, count -> count <= params.max_ml }.map{taxa, cluster, aln, const_sites, count -> [taxa, cluster, aln, const_sites, count]},
         timestamp
     )
     ch_versions = ch_versions.mix(IQTREE.out.versions)
@@ -90,17 +105,56 @@ workflow VARIANTS {
         timestamp
     )
     ch_versions = ch_versions.mix(RAPIDNJ.out.versions)
-    // Combine the outputs of IQTREE and RAPIDNJ
-    IQTREE.out.result.map{ taxa, cluster, tree -> [taxa, cluster, tree, "core SNPs", "Maximum Likelihood"] }.set{ ml_tree }
-    RAPIDNJ.out.result.map{ taxa, cluster, tree -> [taxa, cluster, tree, "core SNPs", "Neighbor Joining"] }.set{ nj_tree }
-    ml_tree.concat(nj_tree).set{core_tree}
+
+    IQTREE
+        .out
+        .result
+        .map{ taxa, cluster, tree -> [taxa, cluster, tree, "core SNPs", "Maximum Likelihood"] }
+        .view()
+    
+    // Combine the outputs of IQTREE and RAPIDNJ and add core SNP stats
+    IQTREE
+        .out
+        .result
+        .map{ taxa, cluster, tree -> [taxa, cluster, tree, "core SNPs", "Maximum Likelihood"] }
+        .set{ ml_tree }
+    RAPIDNJ
+        .out
+        .result
+        .map{ taxa, cluster, tree -> [taxa, cluster, tree, "core SNPs", "Neighbor Joining"] }
+        .set{ nj_tree }
+    ml_tree
+        .concat(nj_tree)
+        .set{ core_tree }
+
+    // MODULE: Make tree figures and distance matrix
+    // Tree figure
+    TREE_FIGURE (
+        core_tree.join(SNIPPY_CORE.out.stats, by: [0,1]),
+        manifest_file,
+        timestamp
+    )
+   
+   // Distance matrix figure
+   SNP_DISTS
+       .out
+       .result
+       .join(core_tree.map{ taxa, cluster, tree, type, method -> [ taxa, cluster, tree  ]}, by: [0,1])       
+       .set{ dist_mat_input }
+
+    DIST_MAT (
+        dist_mat_input,
+        manifest_file,
+        "wide",
+        "SNP",
+        100,
+        timestamp
+    )
 
     emit:
-    snp_files     = snp_files                // channel: [taxa, cluster, ref, new_snippy, old_snippy]
-    core_stats    = SNIPPY_CORE.out.stats    // channel: [taxa, cluster, stats]
-    core_full_aln = SNIPPY_CORE.out.full_aln // channel: [taxa, cluster, full_aln]
-    core_snp_aln  = SNIPPY_CORE.out.snp_aln  // channel: [taxa, cluster, snp_aln, const_sites]
-    core_dist     = SNP_DISTS.out.result     // channel: [taxa, cluster, dist]
-    core_tree     = core_tree                // channel: [taxa, cluster, tree]
-    versions      = ch_versions              // channel: [ versions.yml ]
+    snp_files = snp_files             // channel: [ val(taxa), val(cluster), path(ref), path(new_snippy), path(old_snippy) ]
+    tree      = core_tree             // channel: [ val(taxa), val(cluster), path(tree), val(type), val(method),  ]
+    dist      = SNP_DISTS.out.result  // channel: [ val(taxa), val(cluster), path(dist) ]
+    stats     = SNIPPY_CORE.out.stats // channel: [ val(taxa), val(cluster), path(stats) ]
+    versions  = ch_versions           // channel: [ versions.yml ]
 }

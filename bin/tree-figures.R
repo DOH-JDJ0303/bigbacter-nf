@@ -35,14 +35,14 @@ if(n_iso > 3){
   tree <- midpoint(tree)
 }
 
-#---- LOAD MANIFEST FILE & CREATE METADATA----#
-# load manifest file
-df.manifest <- read.csv(manifest_path)
+#---- CREATE METADATA----#
+# load list of new samples
+new_samples <- read.csv(manifest_path) %>% .$sample
 # create metadata
 df.meta <- data.frame(sample = tree$tip.label, font_face = "plain", status = "OLD") %>%
-  mutate(font_face = case_when(sample %in% df.manifest$sample ~ "bold",
+  mutate(font_face = case_when(sample %in%new_samples ~ "bold",
                           TRUE ~ font_face),
-         status = case_when(sample %in% df.manifest$sample ~ "NEW",
+         status = case_when(sample %in% new_samples ~ "NEW",
                           TRUE ~ status))
 
 #---- RESCALE BRANCH LENGTHS (CORE SNPS ONLY) ----#

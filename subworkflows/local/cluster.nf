@@ -3,10 +3,9 @@
 //
 
 // Modules
-include { ASSIGN_PP_CLUSTER       } from '../../modules/local/assign-pp-cluster'
+include { POPPUNK_ASSIGN          } from '../../modules/local/poppunk-assign'
 include { POPPUNK_VISUAL          } from '../../modules/local/poppunk-visualize'
 include { RESOLVE_MERGED_CLUSTERS } from '../../modules/local/resolve-merged-clusters'
-
 
 // Function for determining the most recent PopPUNK database
 def get_ppdb ( taxa ) {
@@ -31,7 +30,7 @@ def get_status ( taxa, cluster ) {
 }
 
 // get list of isolates in each cluster for a taxa
-def db_taxa_clusters ( taxa ) {
+def db_taxa_clusters ( taxa , timestamp ) {
     // determine path to taxa database
     clusters_path = file(params.db).resolve(taxa).resolve("clusters")
     // check that a bigbacter database exists for the taxa
@@ -39,7 +38,9 @@ def db_taxa_clusters ( taxa ) {
         exit 1, "ERROR: No BigBacter database exists for \n${taxa} at the provided path: ${params.db}"
     }
     // get list of isolates associated with each cluster
-    db_info_file = file(params.outdir).resolve(taxa+"-db-info.txt")
+    taxadir = file(params.outdir).resolve(timestamp.toString()).resolve(taxa)
+    taxadir.mkdirs()
+    db_info_file = taxadir.resolve(taxa+"-db-info.txt")
     db_info_file.delete()
     clusters = clusters_path.list()
     for ( cluster in clusters ) {
@@ -69,21 +70,21 @@ workflow CLUSTER {
         .set { pp_grouped }
 
     // MODULE: Assign PopPUNK clusters
-    ASSIGN_PP_CLUSTER(
+    POPPUNK_ASSIGN (
         pp_grouped,
         timestamp
     )
-    ch_versions = ch_versions.mix(ASSIGN_PP_CLUSTER.out.versions)
+    ch_versions = ch_versions.mix(POPPUNK_ASSIGN.out.versions)
 
     // MODULE: Create visuals for new PopPUNK database
     POPPUNK_VISUAL(
-        ASSIGN_PP_CLUSTER.out.new_pp_db,
+        POPPUNK_ASSIGN.out.new_pp_db,
         timestamp
     )
     ch_versions = ch_versions.mix(POPPUNK_VISUAL.out.versions)
 
     // Load cluster results  
-    ASSIGN_PP_CLUSTER
+    POPPUNK_ASSIGN
         .out
         .cluster_results
         .map { taxa, results -> [ results ] }
@@ -100,12 +101,13 @@ workflow CLUSTER {
         // get list of isolates that belong to each cluster in the BiBacter database
         manifest
             .map{ sample, taxa, assembly, fastq_1, fastq_2 -> taxa }
+            .combine(timestamp)
             .distinct()
-            .map{ taxa -> [ taxa, db_taxa_clusters(taxa) ] }
+            .map{ taxa, timestamp -> [ taxa, db_taxa_clusters(taxa, timestamp) ] }
             .set{ db_taxa_clusters }
         
         // load merged clusters & determine if each unmerged cluster exists in the BigBacter database
-        ASSIGN_PP_CLUSTER
+        POPPUNK_ASSIGN
             .out
             .merged_clusters
             .map { taxa, results -> [ results ] }
@@ -136,7 +138,7 @@ workflow CLUSTER {
             .map { taxa, merged_cluster, pp_status, unmerged_cluster, bb_status -> [ taxa, merged_cluster ] }
             .distinct()
             .combine(db_taxa_clusters, by: 0)
-            .combine(ASSIGN_PP_CLUSTER.out.jaccard_dist, by: 0)
+            .combine(POPPUNK_ASSIGN.out.jaccard_dist, by: 0)
             .combine(cluster_results.map { sample, merged_cluster, taxa -> [ taxa, merged_cluster, sample ] }, by: [0, 1])
             .set {stale_merges } // [ taxa, merged_cluster, db_info, dist ]
 
@@ -155,7 +157,7 @@ workflow CLUSTER {
     }
     if ( ! params.resolve_merged ) {
         // load merged clusters
-        ASSIGN_PP_CLUSTER
+        POPPUNK_ASSIGN
             .out
             .merged_clusters
             .map {taxa, results -> [ results ]}
@@ -176,7 +178,8 @@ workflow CLUSTER {
         .set { sample_cluster_status }
 
     emit:
-    sample_cluster_status = sample_cluster_status           // channel: [ val(sample), val(cluster), val(new_status), val(merge_status) ]
-    new_pp_db             = ASSIGN_PP_CLUSTER.out.new_pp_db // channel: [ val(taxa), path(new_pp_db)]
-    versions              = ch_versions                     // channel: [ versions.yml ]
+    sample_cluster_status = sample_cluster_status            // channel: [ val(sample), val(cluster), val(new_status), val(merge_status) ]
+    new_pp_db             = POPPUNK_ASSIGN.out.new_pp_db     // channel: [ val(taxa), path(new_pp_db)]
+    core_acc_dist         = POPPUNK_ASSIGN.out.core_acc_dist // channel: [ val(taxa), path(dist) ]
+    versions              = ch_versions                      // channel: [ versions.yml ]
 }

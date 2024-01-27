@@ -7,15 +7,23 @@ include { SAMPLESHEET_CHECK } from '../../modules/local/samplesheet_check'
 workflow INPUT_CHECK {
     take:
     samplesheet // file: /path/to/samplesheet.csv
+    timestamp
 
     main:
-    SAMPLESHEET_CHECK ( samplesheet )
+    SAMPLESHEET_CHECK( 
+        samplesheet,
+        timestamp 
+    )
+
+    SAMPLESHEET_CHECK
+        .out
         .csv
         .splitCsv ( header:true, sep:',' )
         .set { manifest }
 
     emit:
     manifest                                  // channel: [ val(meta), val(taxa), file(assembly), file(fastq_1), file(fastq_2) ]
+    csv = SAMPLESHEET_CHECK.out.csv           // channel: [ samplesheet.valid.csv ]
     versions = SAMPLESHEET_CHECK.out.versions // channel: [ versions.yml ]
 }
 

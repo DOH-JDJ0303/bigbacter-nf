@@ -9,6 +9,7 @@ process SAMPLESHEET_CHECK {
 
     input:
     path samplesheet
+    val timestamp
 
     output:
     path '*.csv'       , emit: csv

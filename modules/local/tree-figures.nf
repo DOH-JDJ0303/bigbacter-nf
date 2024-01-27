@@ -17,6 +17,7 @@ process TREE_FIGURE {
     shell:
     prefix = "${timestamp}-${taxa}-${cluster}"
     '''
-    tree-figures.R !{tree} !{manifest} "!{tree_type}" "!{tree_method}" "!{prefix}" !{core_stats}
+    # run script
+    tree-figures.R !{tree} "!{manifest}" "!{tree_type}" "!{tree_method}" "!{prefix}" !{core_stats}
     '''
 }

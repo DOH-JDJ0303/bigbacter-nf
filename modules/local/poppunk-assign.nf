@@ -1,4 +1,4 @@
-process ASSIGN_PP_CLUSTER {
+process POPPUNK_ASSIGN {
     tag "${taxa}"
     label 'process_high'
 
@@ -9,8 +9,8 @@ process ASSIGN_PP_CLUSTER {
     output:
     tuple val(taxa), path('clusters.csv'),                  emit: cluster_results
     tuple val(taxa), path('merged_clusters.csv'),           emit: merged_clusters
-    tuple val(taxa), path('pp-core-acc-dist.txt'),          emit: core_acc_dist
-    tuple val(taxa), path('pp-jaccard-dist.txt'),      emit: jaccard_dist
+    tuple val(taxa), path('pp-core-acc-dist.txt.gz'),       emit: core_acc_dist
+    tuple val(taxa), path('pp-jaccard-dist.txt.gz'),        emit: jaccard_dist
     tuple val(taxa), path('*.tar.gz', includeInputs: true), emit: new_pp_db
     path 'versions.yml',                                    emit: versions
 
@@ -19,7 +19,7 @@ process ASSIGN_PP_CLUSTER {
 
     shell:
     args           = task.ext.args ?: ''
-    prefix         = taxa
+    prefix         = "${timestamp}-${taxa}"
     db_name        = db.name
     '''
     # decompress database
@@ -60,8 +60,8 @@ process ASSIGN_PP_CLUSTER {
 
     #### CALCULATE DISTANCES ####
     # core & accessory distances
-    sketchlib query dist --cpus !{task.cpus} */*.h5 > pp-core-acc-dist.txt
-    sketchlib query jaccard --cpus !{task.cpus} */*.h5 > pp-jaccard-dist.txt
+    sketchlib query dist --cpus !{task.cpus} */*.h5 | gzip > pp-core-acc-dist.txt.gz
+    sketchlib query jaccard --cpus !{task.cpus} */*.h5 | gzip > pp-jaccard-dist.txt.gz
 
     #### RENAME CLUSTER RESULTS ####
     cp $(ls */*_clusters.csv | grep -v "unword") clusters.csv

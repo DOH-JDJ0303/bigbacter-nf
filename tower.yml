@@ -1,21 +1,20 @@
 reports:
-  "**/multiqc_report.html":
-    display: "MultiQC HTML report"
-  "**/samplesheet.csv":
-    display: "Auto-created samplesheet with collated metadata and FASTQ paths"
-  "**/software_versions.yml":
+  "*/*/other/software_versions.yml":
     display: "Software versions"
-  "**/*-summary.tsv":
+  "*/*/*-summary.tsv":
     display: "Run summary"
-  "**/**/poppunk/*":
+  "*/*/*/poppunk/*":
     display: "PopPUNK files"
-  "**/**/**/*-summary.tsv":
-    display: "Species-cluster summary"
-  "**/**/**/*.jpg":
+  "*/*/*/*/figures/*":
     display: "Figures"
-  "**/**/**/mash/*":
-    display: "Mash files"
-  "**/**/**/variants/core/*":
-    display: "Core SNP files"
-  "**/**/**/variants/per_sample/*":
-    display: "Per-sample SNP files"
+  "*/*/*/*/aln/*":
+    display: "Genome alignment files"
+  "*/*/*/*/snippy/*":
+    display: "Compressed Snippy files for each isolate"
+  "*/*/*/*/trees/*":
+    display: "Phylogenetic trees"
+  "*/*/*/*/dist/*":
+    display: "Genome distance metrics"
+  "*/*/*/*/stats/*":
+    display: "Genome statistics"
+
