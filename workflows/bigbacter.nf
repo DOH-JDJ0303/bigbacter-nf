@@ -72,15 +72,21 @@ workflow BIGBACTER {
 
     ch_versions = Channel.empty()
 
-    // Get timestamp - used to name cache and some new files
+    /*
+    =============================================================================================================================
+        GET EPOCH TIMESTAMP
+    =============================================================================================================================
+    */
+    // MODULE: Get epoch timestamp
     TIMESTAMP()
-    TIMESTAMP
-        .out
         .set { timestamp }
 
-    //
+    /*
+    =============================================================================================================================
+        CHECK SAMPLESHEET
+    =============================================================================================================================
+    */
     // SUBWORKFLOW: Read in samplesheet, validate and stage input files
-    //
     INPUT_CHECK (
        ch_input,
        timestamp
@@ -98,8 +104,12 @@ workflow BIGBACTER {
       .out
       .csv
       .set{ manifest_path }
-        
 
+    /*
+    =============================================================================================================================
+        ASSIGN CLUSTERS
+    =============================================================================================================================
+    */
     // SUBWORKFLOW: Assign PopPUNK clusters
     CLUSTER(
         manifest,
@@ -110,7 +120,12 @@ workflow BIGBACTER {
     // Update manifest with cluster and status info
     CLUSTER.out.sample_cluster_status.map { sample, cluster, status -> [sample, cluster, status] }.set { sample_cluster_status }
     manifest.join(sample_cluster_status).set { manifest }
-    
+
+    /*
+    =============================================================================================================================
+        CORE GENOME ANALYSIS
+    =============================================================================================================================
+    */
     // SUBWORKFLOW: Core genome analysis
     CORE(
         manifest,
@@ -119,6 +134,11 @@ workflow BIGBACTER {
     )
     ch_versions = ch_versions.mix(CORE.out.versions)
 
+    /*
+    =============================================================================================================================
+        ACCESSORY GENOME ANALYSIS
+    =============================================================================================================================
+    */
     // SUBWORKFLOW: Accessory genome analysis
     ACCESSORY(
         CLUSTER.out.core_acc_dist,
@@ -128,39 +148,66 @@ workflow BIGBACTER {
     )
     ch_versions = ch_versions.mix(ACCESSORY.out.versions)
 
-   // MODULE: Make Summary table
-   CORE.out.dist.join(CORE.out.stats, by: [0,1]).set{core_summary}
-   SUMMARY_TABLE(
-    core_summary,
-    manifest_path,
-    timestamp
-   )
-   COMBINED_SUMMARY(
+    /*
+    =============================================================================================================================
+        SUMMARIZE RESULTS
+    =============================================================================================================================
+    */
+    // Consolidate results for summary
+    CORE
+        .out
+        .dist
+        .map{ taxa, cluster, dist, source -> [ taxa, cluster, dist ] }
+        .groupTuple(by: [0,1])
+        .join(CORE.out.stats, by: [0,1])
+        .set{core_summary}
+
+    // MODULE: Make individual summary tables
+    SUMMARY_TABLE(
+        core_summary,
+        manifest_path,
+        timestamp
+    )
+
+    // MODULE: Combine summary tables
+    COMBINED_SUMMARY(
        SUMMARY_TABLE.out.summary.map{taxa, cluster, summary -> [ summary ]}.collect(),
        timestamp
    )
-   
-   // SUBWORKFLOW: Push new BigBacter database
-   // Taxa-specific files
-   CLUSTER
-       .out
-       .new_pp_db
-       .set{ taxa_files }
-   // Cluster-specific files
-   CORE
-      .out
-      .snp_files
-      .map{ taxa, cluster, ref, new_snippy, old_snippy -> [ taxa, cluster, ref, new_snippy ] }
-      .set{ cluster_files }
 
-   if(params.push){
-    PUSH_FILES(
-        cluster_files,
-        taxa_files,
-        COMBINED_SUMMARY.out.summary
-        )
+    /*
+    =============================================================================================================================
+        PUSH FILES TO BIGBACTER DATABASE
+    =============================================================================================================================
+    */
+    // Consolidate taxa-specific files
+    CLUSTER
+        .out
+        .new_pp_db
+        .set{ taxa_files }
+
+    // Consolidate cluster-specific files
+    CORE
+        .out
+        .snp_files
+        .map{ taxa, cluster, ref, new_snippy, old_snippy -> [ taxa, cluster, ref, new_snippy ] }
+        .set{ cluster_files }
+    
+    // if push is 'true'
+    if(params.push){
+        // SUBWORKFLOW: Push new BigBacter database
+        PUSH_FILES(
+            cluster_files,
+            taxa_files,
+            COMBINED_SUMMARY.out.summary
+            )
     }
 
+    /*
+    =============================================================================================================================
+        NEXTFLOW DEFAULTS
+    =============================================================================================================================
+    */
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml'),
         timestamp

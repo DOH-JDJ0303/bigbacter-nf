@@ -7,8 +7,8 @@ process IQTREE {
     val timestamp
 
     output:
-    tuple val(taxa), val(cluster), path("*.contree"),  emit: result, optional: true
-    path 'versions.yml',                               emit: versions
+    tuple val(taxa), val(cluster), path("*.contree"), val(count), emit: result
+    path 'versions.yml',                                          emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -31,7 +31,7 @@ process IQTREE {
         -fconst $(cat !{const_sites}) \
         -T !{task.cpus} \
         !{args} \
-        ${bs} || true
+        ${bs}
     
     # rename file for consistency
     if [[ !{count}  < 5 ]]

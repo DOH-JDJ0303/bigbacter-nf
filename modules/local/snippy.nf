@@ -54,7 +54,7 @@ process SNIPPY_CORE {
 
     output:
     tuple val(taxa), val(cluster), path("${prefix}.stats"),                                     emit: stats
-    tuple val(taxa), val(cluster), path("${prefix}.aln"), path("${prefix}-constant-sites.txt"), emit: snp_aln
+    tuple val(taxa), val(cluster), path("${prefix}.aln"), path("${prefix}-constant-sites.txt"), emit: aln
     tuple val(taxa), val(cluster), path("${prefix}.full.aln"),                                  emit: full_aln
     path 'versions.yml',                                                                        emit: versions
 
@@ -113,14 +113,15 @@ process SNIPPY_CORE {
             snippy-core --prefix !{prefix} --ref ../${ref} !{args} ${pass} || true
             cd ../
         else
-            echo "All samples failed QC"
+            echo "\nAll samples failed QC\n"
+            exit 1
         fi
     fi
 
-    # move full alignment to simplify publish
+    # move alignment files to simplify publish
     mv core/*.aln ./
 
-    # create empty alignment file, in the case that no SNPs were found
+    # create empty core alignment file if no SNPs were found
     if [ ! -s !{prefix}.aln ]
     then
         touch !{prefix}.aln

@@ -12,31 +12,11 @@ tree_path <- args[2]
 manifest_path <- args[3]
 input_format <- args[4] # 'long' or 'wide'
 input_type <- args[5] # 'SNP' or 'Accessory'
-threshold <- args[6] # 100 or 1
-prefix <- args[7] # output prefix
+input_source <- args[6]
+threshold <- args[7] # 100 or 1
+prefix <- args[8] # output prefix
 
-#---- LOAD TREE & CLEAN UP ----#
-tree <- read.tree(tree_path)
-# clean up sample names
-tree$tip.label <- str_remove_all(tree$tip.label, pattern = "'")
-# set negative branch lengths to zero
-tree$edge.length[tree$edge.length < 0] <- 0
-# determine if tree can be rooted
-n_iso <- tree$tip.label %>% length()
-if(n_iso > 3){
-  tree <- midpoint(tree)
-}
-
-#---- PLOT TREE FOR TIP ORDER ----#
-# initial plot
-p_tree <- ggtree(tree)
-# get tip order
-sample_order <- p_tree$data %>%
-  subset(isTip == TRUE) %>%
-  arrange(y) %>%
-  .$label
-
-  #---- LOAD DISTANCE MATRIX & CLEAN UP ----#
+#---- LOAD DISTANCE MATRIX & CLEAN UP ----#
 if(input_format == "wide"){
   # create wide format
   df.wide <- read_tsv(dist_path) %>%
@@ -45,8 +25,6 @@ if(input_format == "wide"){
   df.long <- read_tsv(dist_path) %>%
     rename(ID1 = 1) %>%
     pivot_longer(names_to = "ID2", values_to = "dist", cols = 2:ncol(.)) %>%
-    mutate(ID1 = factor(ID1, levels = sample_order),
-          ID2 = factor(ID2, levels = sample_order)) %>%
     drop_na()
   # set plot data to long format
   df <- df.long
@@ -57,10 +35,6 @@ if(input_format == "wide"){
     rename(ID1 = 1,
            ID2 = 2,
            dist = 3) %>%
-    filter(ID1 %in% sample_order) %>%
-    filter(ID2 %in% sample_order) %>%
-    mutate(ID1 = factor(ID1, levels = sample_order),
-           ID2 = factor(ID2, levels = sample_order)) %>%
     select(1:3)
   ## create diagonal
   diag <- data.frame(ID1 = unique(c(upper$ID1,upper$ID2))) %>%
@@ -86,6 +60,33 @@ if(input_format == "wide"){
 }else{
   cat("\nError: Please specifiy either 'long' or 'wide' input format.\n" )
   quit(status=1)
+}
+
+#---- ARRANGE BY TREE TIP ORDER (IF TREE PROVIDED) ----#
+if(file.exists(tree_path)){
+  # load tree
+  tree <- read.tree(tree_path)
+  # clean up sample names
+  tree$tip.label <- str_remove_all(tree$tip.label, pattern = "'")
+  # set negative branch lengths to zero
+  tree$edge.length[tree$edge.length < 0] <- 0
+  # determine if tree can be rooted
+  n_iso <- tree$tip.label %>% length()
+  if(n_iso > 3){
+    tree <- midpoint(tree)
+  }
+  # plot tree
+  p_tree <- ggtree(tree)
+  # get tip order
+  sample_order <- p_tree$data %>%
+    subset(isTip == TRUE) %>%
+    arrange(y) %>%
+    .$label
+  # set factor level
+  df <- df %>%
+    mutate(ID1 = factor(ID1, levels = sample_order),
+           ID2 = factor(ID2, levels = sample_order))
+
 }
 
 #---- CREATE METADATA----#
@@ -127,7 +128,7 @@ if(n_iso > 10){
 #---- SAVE FILES ----#
 # base filename
 ext.type <- str_replace_all(tolower(input_type), pattern = " ", replacement = "-")
-basename <- paste0(prefix,"-",ext.type)
+basename <- paste0(prefix,"-",ext.type,".",input_source)
 # plot image
 ggsave(filename = paste0(basename,"-dist.jpg"), plot = p_mat, dpi = 300, width = wdth, height = hght, limitsize = F)
 # distance matrix

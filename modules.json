@@ -15,9 +15,19 @@
                         "git_sha": "c8e35eb2055c099720a75538d1b8adb3fb5a464c",
                         "installed_by": ["modules"]
                     },
+                    "gubbins": {
+                        "branch": "master",
+                        "git_sha": "3f5420aa22e00bd030a2556dfdffc9e164ec0ec5",
+                        "installed_by": ["modules"]
+                    },
                     "multiqc": {
                         "branch": "master",
                         "git_sha": "f2d63bd5b68925f98f572eed70993d205cc694b7",
+                        "installed_by": ["modules"]
+                    },
+                    "rapidnj": {
+                        "branch": "master",
+                        "git_sha": "233fa70811a03a4cecb2ece483b5c8396e2cee1d",
                         "installed_by": ["modules"]
                     }
                 }

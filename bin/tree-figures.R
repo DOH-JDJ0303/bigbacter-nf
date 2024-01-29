@@ -11,14 +11,15 @@ tree_path <- args[1]
 manifest_path <- args[2]
 tree_type <- args[3]
 tree_method <- args[4]
-prefix <- args[5]
-core_stats <- args[6]
+tree_source <- args[5]
+prefix <- args[6]
+core_stats <- args[7]
 
 #---- EXTRACT BASE FILENAME ----#
 ext.type <- str_replace_all(tolower(tree_type), pattern = " ", replacement = "-")
 ext.method <- sapply( tree_method, function(x)
                   paste(substr(strsplit(x, " ")[[1]], 1, 1), collapse="") )
-filebase <- paste(prefix,ext.type,ext.method, sep = "_")
+filebase <- paste0(prefix,"_",ext.type,"_",ext.method,".",tree_source)
 #---- LOAD TREE & CLEAN UP ----#
 # load tree
 tree <- read.tree(tree_path)
@@ -45,14 +46,16 @@ df.meta <- data.frame(sample = tree$tip.label, font_face = "plain", status = "OL
          status = case_when(sample %in% new_samples ~ "NEW",
                           TRUE ~ status))
 
-#---- RESCALE BRANCH LENGTHS (CORE SNPS ONLY) ----#
-if(file.exists(core_stats) & tree_method == "Maximum Likelihood"){
+#---- RESCALE BRANCH LENGTHS (SNIPPY W/ ML ONLY) ----#
+if(tree_source == "snippy" & tree_method == "Maximum Likelihood"){
   ref_length <- read_tsv(core_stats) %>%
     slice(1) %>%
     .$LENGTH
   tree$edge.length <- as.numeric(tree$edge.length) * as.numeric(ref_length)
   x_label <- "Estimated Nucleotide Substitutions"
   write.tree(tree, paste0(filebase,".scaled.nwk"))
+}else if(tree_source == "gubbins"){
+  x_label <- "Estimated Nucleotide Substitutions"
 }else{
   x_label <- "Divergence"
 }
