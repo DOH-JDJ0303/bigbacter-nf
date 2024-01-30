@@ -5,7 +5,7 @@ process GUBBINS {
     conda "bioconda::gubbins=3.3.1"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/gubbins%3A3.3.1--py39pl5321h3d4b85c_0' :
-        'biocontainers/gubbins:3.3.1--py39h5bf99c6_0' }"
+        'biocontainers/gubbins:3.3--py310pl5321h8472f5a_0' }"
 
     input:
     tuple val(taxa), val(cluster), path(aln), path(tree), val(count)
