@@ -48,7 +48,8 @@ workflow ACCESSORY {
         manifest_file,
         "long",
         "Accessory",
-        0.1,
+        100,
+        "TRUE",
         timestamp
     )
 

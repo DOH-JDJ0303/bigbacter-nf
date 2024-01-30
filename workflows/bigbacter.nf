@@ -172,6 +172,7 @@ workflow BIGBACTER {
     // MODULE: Combine summary tables
     COMBINED_SUMMARY(
        SUMMARY_TABLE.out.summary.map{taxa, cluster, summary -> [ summary ]}.collect(),
+       manifest_path,
        timestamp
    )
 

@@ -11,15 +11,18 @@ dist_path <- args[1]
 tree_path <- args[2]
 manifest_path <- args[3]
 input_format <- args[4] # 'long' or 'wide'
-input_type <- args[5] # 'SNP' or 'Accessory'
+input_type <- args[5] # 'Core SNP' or 'Accessory'
 input_source <- args[6]
 threshold <- as.numeric(args[7]) # 100 or 1
-prefix <- args[8] # output prefix
+percent <- args[8] # if dist should be converted to percentage - true or false
+prefix <- args[9] # output prefix
 
 #---- OUTPUT NAME ----#
 # base filename
 ext.type <- str_replace_all(tolower(input_type), pattern = " ", replacement = "-")
 basename <- paste0(prefix,"-",ext.type,"_dist.",input_source)
+# distance label
+dist_lab <- input_type
 
 #---- LOAD DISTANCE MATRIX & CLEAN UP ----#
 if(input_format == "wide"){
@@ -56,10 +59,6 @@ if(input_format == "wide"){
   df.long <- do.call(rbind, list(upper, diag, lower)) %>%
     unique() %>%
     drop_na()
-  # create wide format
-  df.wide <- df.long %>%
-    pivot_wider(names_from = ID2, values_from = dist) %>%
-    rename('null' = ID1)
   # set plot data to long format
   df <- df.long
 }else{
@@ -68,6 +67,17 @@ if(input_format == "wide"){
 }
 # determine number of samples
 n_iso <- df.long$ID1 %>% unique() %>% length()
+# convert distance to percentage
+if(percent == "true" | percent == "True" | percent == "T" | percent == "TRUE"){
+  df <- df %>%
+    mutate(dist = 100*as.numeric(dist))
+  dist_lab <- paste0("% ",dist_lab)
+}
+# create filtered dataset for displaying text values in plot
+text_data <- df %>%
+  filter(dist < threshold) %>%
+  mutate(dist = round(dist, digits = 2))
+
 
 #---- ARRANGE BY TREE TIP ORDER (IF TREE PROVIDED) ----#
 if(file.exists(tree_path)){
@@ -112,9 +122,6 @@ df.meta <- df %>%
   arrange(sample)
 
 #---- PLOT DISTANCE MATRIX ----#
-text_data <- df %>%
-  filter(dist < threshold) %>%
-  mutate(dist = round(dist, digits = 2))
 p_mat <- ggplot(df, aes(x=ID1, y=ID2, fill=dist))+
   geom_tile()+
   geom_text(data=text_data, aes(label=dist))+
@@ -124,7 +131,7 @@ p_mat <- ggplot(df, aes(x=ID1, y=ID2, fill=dist))+
         axis.text.y = element_text(face = df.meta$font_face, 
                                    color = df.meta$font_color))+
   scale_fill_gradient(low = "#009E73", high = "white")+
-  labs(fill=paste(input_type,"Distance"))
+  labs(fill=paste(dist_lab,"Distance"))
 # determine matrix dimensions
 if(n_iso > 10){
   wdth <- 0.45*n_iso
@@ -142,6 +149,10 @@ p_mat <- p_mat+
 ggsave(filename = paste0(basename,".jpg"), plot = p_mat, dpi = 300, width = wdth, height = hght, limitsize = F)
 # distance matrix
 ## long format
-write.csv(x = df.long, file = paste0(basename,"-long.csv"), quote = F, row.names = F)
+write.csv(x = df, file = paste0(basename,"-long.csv"), quote = F, row.names = F)
 ## wide format
+# create wide format
+df.wide <- df %>%
+  pivot_wider(names_from = ID2, values_from = dist) %>%
+  rename('null' = ID1)
 write.csv(x = df.wide, file = paste0(basename,"-wide.csv"), quote = F, row.names = F)

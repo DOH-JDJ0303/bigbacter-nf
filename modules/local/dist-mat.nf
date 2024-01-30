@@ -9,6 +9,7 @@ process DIST_MAT {
     val input_format
     val input_type
     val threshold
+    val percent_bool
     val timestamp
 
     output:
@@ -23,6 +24,15 @@ process DIST_MAT {
     prefix = "${timestamp}-${taxa}-${cluster}"
     '''    
     # make figure
-    dist-figures.R "!{dist}" "!{tree}" "!{manifest}" "!{input_format}" "!{input_type}" "!{input_source}" "!{threshold}" "!{prefix}"
+    dist-figures.R \
+        "!{dist}" \
+        "!{tree}" \
+        "!{manifest}" \
+        "!{input_format}" \
+        "!{input_type}" \
+        "!{input_source}" \
+        "!{threshold}" \
+        "!{percent_bool}" \
+        "!{prefix}"
     '''
 }

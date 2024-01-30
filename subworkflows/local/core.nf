@@ -251,6 +251,7 @@ workflow CORE {
         manifest_file,
         "wide",
         "Core SNPs",
+        "FALSE",
         100,
         timestamp
     )
