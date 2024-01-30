@@ -1,0 +1,44 @@
+# base image
+FROM ubuntu:jammy
+
+# metadata
+LABEL base.image="ubuntu:xenial"
+LABEL dockerfile.version="1"
+LABEL software="Gubbins"
+LABEL software.version="v3.3.2"
+LABEL description=""
+LABEL website="https://github.com/nickjcroucher/gubbins"
+LABEL license="GPL-2.0"
+LABEL maintainer="Jared Johnson"
+LABEL maintainer.email="jared.johnson@doh.wa.gov"
+
+# prevents having to enter commands during apt-get install
+ENV DEBIAN_FRONTEND=noninteractive
+
+# install dependencies
+RUN apt-get update && apt-get -y --no-install-recommends install \
+    ca-certificates \
+    libssl-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    make \
+    llvm \
+    libncurses5-dev \
+    libncursesw5-dev \
+    xz-utils \
+    tk-dev \
+    libffi-dev \
+    liblzma-dev \
+    build-essential \
+    bc \
+    unzip \
+    tar \
+    gzip \
+    curl \
+    wget \
+    bzip2 \
+    gubbins && \
+    apt-get autoclean && \
+    rm -rf /var/lib/apt/lists/*
