@@ -171,6 +171,7 @@ workflow CORE {
             .join(IQTREE.out.result, by: [0, 1]),
         timestamp
     )
+    ch_versions = ch_versions.mix(GUBBINS.out.versions)
 
     /* 
     =============================================================================================================================
@@ -183,7 +184,7 @@ workflow CORE {
         .out
         .full_aln
         .map{ taxa, cluster, aln -> [ taxa, cluster, aln, "snippy" ] }
-        .join( GUBBINS.out.aln.map{ taxa, cluster, aln -> [ taxa, cluster, aln, "gubbins" ] }, by: [0,1])
+        .concat( GUBBINS.out.aln.map{ taxa, cluster, aln -> [ taxa, cluster, aln, "gubbins" ] })
         .set{ all_alns }
 
     // Create SNP distance matrix
@@ -204,18 +205,18 @@ workflow CORE {
     RAPIDNJ
         .out
         .result
-        .map{ taxa, cluster, tree -> [taxa, cluster, tree, "core SNPs", "Neighbor Joining", "snippy", [] ] }
+        .map{ taxa, cluster, tree -> [taxa, cluster, tree, "Core SNPs", "Neighbor Joining", "snippy", [] ] }
         .set{ nj_tree }
     IQTREE
         .out
         .result
-        .map{ taxa, cluster, tree, count -> [taxa, cluster, tree, "core SNPs", "Maximum Likelihood", "snippy" ] }
+        .map{ taxa, cluster, tree, count -> [taxa, cluster, tree, "Core SNPs", "Maximum Likelihood", "snippy" ] }
         .join(SNIPPY_CORE.out.stats, by: [0,1])
         .set{ ml_tree }
     GUBBINS
         .out
         .tree
-        .map{ taxa, cluster, tree -> [taxa, cluster, tree, "core SNPs", "Maximum Likelihood", "gubbins", [] ] }
+        .map{ taxa, cluster, tree -> [taxa, cluster, tree, "Core SNPs", "Maximum Likelihood", "gubbins", [] ] }
         .set{ rc_tree }
     ml_tree
         .concat(nj_tree)
@@ -241,14 +242,15 @@ workflow CORE {
         .result
         .map{ taxa, cluster, dist, source -> [ taxa, cluster, source, dist ] }
         .join(all_trees.map{ taxa, cluster, tree, type, method, source, stats -> [ taxa, cluster, source, tree ]}, by: [0,1,2], remainder: true)
-        .map{ taxa, cluster, source, dist, tree -> [ taxa, cluster, source, dist, tree == 'null' ? [] : tree ] }       
+        .map{ taxa, cluster, source, dist, tree -> [ taxa, cluster, source, dist, tree == null ? [] : tree ] }       
         .set{ all_dists }
-        // Create distance matrix figure
+
+    // Create distance matrix figure
     DIST_MAT (
         all_dists,
         manifest_file,
         "wide",
-        "SNP",
+        "Core SNPs",
         100,
         timestamp
     )
@@ -262,7 +264,7 @@ workflow CORE {
     SNIPPY_CORE
         .out
         .stats
-        .join(GUBBINS.out.stats, by: [0,1])
+        .concat(GUBBINS.out.stats)
         .groupTuple(by: [0,1])
         .set{ all_stats }
 

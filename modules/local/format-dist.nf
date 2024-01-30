@@ -1,5 +1,5 @@
 process FORMAT_DIST {
-    tag "${taxa}"
+    tag "${taxa}-${cluster}"
     label 'process_low'
 
     input:

@@ -12,21 +12,21 @@ process GUBBINS {
     val timestamp
 
     output:
-    path "*.fasta"                          , emit: aln
-    path "*.gff"                            , emit: gff
-    path "*.vcf"                            , emit: vcf
-    path "*.csv"                            , emit: stats
-    path "*.recombination_predictions.embl" , emit: embl_predicted
-    path "*.branch_base_reconstruction.embl", emit: embl_branch
-    path "*.gubbins.nwk"                            , emit: tree
-    path "versions.yml"                     , emit: versions
+    tuple val(taxa), val(cluster), path("*.fasta"),                           emit: aln
+    tuple val(taxa), val(cluster), path("*.gff"),                             emit: gff
+    tuple val(taxa), val(cluster), path("*.vcf"),                             emit: vcf
+    tuple val(taxa), val(cluster), path("*.gubbins.stats"),                   emit: stats
+    tuple val(taxa), val(cluster), path("*.recombination_predictions.embl"),  emit: embl_predicted
+    tuple val(taxa), val(cluster), path("*.branch_base_reconstruction.embl"), emit: embl_branch
+    tuple val(taxa), val(cluster), path("*.gubbins.nwk"),                     emit: tree
+    path "versions.yml",                                                      emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
     def args = task.ext.args ?: ''
-    def prefix = "${timestamp}-${taxa}-${cluster}"
+    prefix   = "${timestamp}-${taxa}-${cluster}"
     """
     # perform bootstrapping if there are more than 4 samples
     if [[ !{count} > 4 ]]
@@ -45,12 +45,15 @@ process GUBBINS {
         ${args} \\
         ${aln}
 
+    # rename stats for easy summary
+    mv *.csv ${prefix}.gubbins.stats
+
     # rename tree for emitting
     if [[ !{count} > 4 ]]
     then
-        cp *.final_bootstrap_tree.tre ${prefix}.gubbins.nwk
+        cp ${prefix}.final_bootstrap_tree.tre ${prefix}.gubbins.nwk
     else
-        cp *.final_tree.tre ${prefix}.gubbins.nwk
+        cp ${prefix}.final_tree.tre ${prefix}.gubbins.nwk
     fi
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

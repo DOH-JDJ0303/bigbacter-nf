@@ -101,7 +101,7 @@ if(!is.null(tree$node.label)){
 }
 # add tree label
 p_tree <- p_tree+
-  ggtitle(paste0("Input: ",tree_type,"\nMethod: ",tree_method))
+  ggtitle(paste0("Input: ",tree_type,"\nMethod: ",tree_method,"\nSource: ",str_to_title(tree_source)))
 # save image
 n_iso <- p_tree$data %>%
   drop_na() %>%

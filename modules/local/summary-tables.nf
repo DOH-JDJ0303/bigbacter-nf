@@ -22,8 +22,10 @@ process SUMMARY_TABLE {
         "!{cluster}" \
         "!{params.strong_link_cutoff}" \
         "!{params.inter_link_cutoff}" \
-        *.stats \
+        *.snippy.stats \
         *.snippy.dist \
+        *.gubbins.stats \
+        *.gubbins.dist \
         !{manifest}
     '''
 }

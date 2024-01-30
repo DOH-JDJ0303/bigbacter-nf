@@ -13,8 +13,13 @@ manifest_path <- args[3]
 input_format <- args[4] # 'long' or 'wide'
 input_type <- args[5] # 'SNP' or 'Accessory'
 input_source <- args[6]
-threshold <- args[7] # 100 or 1
+threshold <- as.numeric(args[7]) # 100 or 1
 prefix <- args[8] # output prefix
+
+#---- OUTPUT NAME ----#
+# base filename
+ext.type <- str_replace_all(tolower(input_type), pattern = " ", replacement = "-")
+basename <- paste0(prefix,"-",ext.type,"_dist.",input_source)
 
 #---- LOAD DISTANCE MATRIX & CLEAN UP ----#
 if(input_format == "wide"){
@@ -61,6 +66,8 @@ if(input_format == "wide"){
   cat("\nError: Please specifiy either 'long' or 'wide' input format.\n" )
   quit(status=1)
 }
+# determine number of samples
+n_iso <- df.long$ID1 %>% unique() %>% length()
 
 #---- ARRANGE BY TREE TIP ORDER (IF TREE PROVIDED) ----#
 if(file.exists(tree_path)){
@@ -71,7 +78,6 @@ if(file.exists(tree_path)){
   # set negative branch lengths to zero
   tree$edge.length[tree$edge.length < 0] <- 0
   # determine if tree can be rooted
-  n_iso <- tree$tip.label %>% length()
   if(n_iso > 3){
     tree <- midpoint(tree)
   }
@@ -106,9 +112,12 @@ df.meta <- df %>%
   arrange(sample)
 
 #---- PLOT DISTANCE MATRIX ----#
+text_data <- df %>%
+  filter(dist < threshold) %>%
+  mutate(dist = round(dist, digits = 2))
 p_mat <- ggplot(df, aes(x=ID1, y=ID2, fill=dist))+
   geom_tile()+
-  geom_text(data=filter(df, dist < threshold), aes(label=dist))+
+  geom_text(data=text_data, aes(label=dist))+
   theme(axis.text.x = element_text(angle=90, 
                                    face = df.meta$font_face, 
                                    color = df.meta$font_color),
@@ -124,15 +133,15 @@ if(n_iso > 10){
    wdth <- 10
    hght <- 8.5
 }
+# add plot label
+p_mat <- p_mat+
+  ggtitle(paste0("Input: ",input_type,"\nSource: ",str_to_title(input_source)))
 
 #---- SAVE FILES ----#
-# base filename
-ext.type <- str_replace_all(tolower(input_type), pattern = " ", replacement = "-")
-basename <- paste0(prefix,"-",ext.type,".",input_source)
 # plot image
-ggsave(filename = paste0(basename,"-dist.jpg"), plot = p_mat, dpi = 300, width = wdth, height = hght, limitsize = F)
+ggsave(filename = paste0(basename,".jpg"), plot = p_mat, dpi = 300, width = wdth, height = hght, limitsize = F)
 # distance matrix
 ## long format
-write.csv(x = df.long, file = paste0(basename,"-dist-long.csv"), quote = F, row.names = F)
+write.csv(x = df.long, file = paste0(basename,"-long.csv"), quote = F, row.names = F)
 ## wide format
-write.csv(x = df.wide, file = paste0(basename,"-dist-wide.csv"), quote = F, row.names = F)
+write.csv(x = df.wide, file = paste0(basename,"-wide.csv"), quote = F, row.names = F)

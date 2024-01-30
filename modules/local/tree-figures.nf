@@ -18,6 +18,6 @@ process TREE_FIGURE {
     prefix = "${timestamp}-${taxa}-${cluster}"
     '''
     # run script
-    tree-figures.R !{tree} "!{manifest}" "!{tree_type}" "!{tree_method}" "!{tree_source}" "!{prefix}" !{core_stats}
+    tree-figures.R !{tree} "!{manifest}" "!{tree_type}" "!{tree_method}" "!{tree_source}" "!{prefix}" "!{core_stats}"
     '''
 }

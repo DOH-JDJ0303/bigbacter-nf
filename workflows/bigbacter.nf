@@ -157,7 +157,7 @@ workflow BIGBACTER {
     CORE
         .out
         .dist
-        .map{ taxa, cluster, dist, source -> [ taxa, cluster, dist ] }
+        .map{ taxa, cluster, source, dist, tree -> [ taxa, cluster, dist ] }
         .groupTuple(by: [0,1])
         .join(CORE.out.stats, by: [0,1])
         .set{core_summary}
