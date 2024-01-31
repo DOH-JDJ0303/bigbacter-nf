@@ -54,7 +54,10 @@ workflow CORE {
         .map{ taxa, cluster, assembly, status -> [taxa, cluster, assembly.first()] }
         .set{ clust_grp_new }
     // Old clusters - resolve path to reference in BigBacter database
-    clust_grps.filter{ taxa, cluster, assembly, status -> status }.map{ taxa, cluster, assembly, status -> [taxa, cluster, file(params.db) / taxa / "clusters" / cluster / "ref/ref.fa.gz" ] }.set{ clust_grps_old }
+    clust_grps
+        .filter{ taxa, cluster, assembly, status -> status }
+        .map{ taxa, cluster, assembly, status -> [taxa, cluster, file(params.db) / taxa / "clusters" / cluster / "ref/ref.fa.gz" ] }
+        .set{ clust_grps_old }
     // Combine new and old clusters into single channel and add back to reference
     manifest
         .map { sample, taxa, assembly, fastq_1, fastq_2, cluster, status -> [taxa, cluster, sample, assembly, fastq_1, fastq_2, status] }
@@ -167,7 +170,7 @@ workflow CORE {
     GUBBINS(
         SNIPPY_CORE
             .out
-            .full_aln
+            .clean_aln
             .join(IQTREE.out.result, by: [0, 1]),
         timestamp
     )

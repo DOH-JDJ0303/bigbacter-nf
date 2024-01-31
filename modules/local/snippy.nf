@@ -24,6 +24,24 @@ process SNIPPY_SINGLE {
         ref=${ref%.gz}
     fi
 
+    # determine read depth sample rate
+    ## total bases in fastq files
+    read_b=$(zcat !{fastq_1} | paste - - - - | cut -f 2 | tr -d '\n' | wc -c | awk '{print $1*2}')
+    ## total bases in reference genome
+    ref_b=$(cat ${ref} | grep -v '>' | tr -d '\n\r\t ' | wc -c)
+    ## subsampling rate
+    echo -e "\nCalculating sampling rate using !{params.max_depth} / ( ${read_b} / ${ref_b} )"
+    sample_rate=$(echo "!{params.max_depth}\t${read_b}\t${ref_b}" | awk '{print $1 / ($2 / $3)}')
+    ## check if subsampling is needed
+    if [ $(echo ${sample_rate} | awk '{print $1 < 1}') ==  1 ]
+    then
+        echo -e "Read depth exceeds '--max_depth'. Using subsample rate: ${sample_rate}\n"
+        subsample="--subsample ${sample_rate}"
+    else
+        echo -e "\nRead depth is below '--max_depth'. No subsampling will be performed.\n"
+        subsample=""
+    fi
+
     # run Snippy
     snippy \
         --reference ${ref} \
@@ -31,6 +49,7 @@ process SNIPPY_SINGLE {
         --R2 !{fastq_2} \
         --outdir ./!{sample} \
         --cpus !{task.cpus} \
+        ${subsample} \
         !{args}
 
     # compress output
@@ -56,6 +75,7 @@ process SNIPPY_CORE {
     tuple val(taxa), val(cluster), path("${prefix}.snippy.stats"),                              emit: stats
     tuple val(taxa), val(cluster), path("${prefix}.aln"), path("${prefix}-constant-sites.txt"), emit: aln
     tuple val(taxa), val(cluster), path("${prefix}.full.aln"),                                  emit: full_aln
+    tuple val(taxa), val(cluster), path("${prefix}.clean.full.aln"),                            emit: clean_aln
     path 'versions.yml',                                                                        emit: versions
 
     when:
@@ -126,6 +146,9 @@ process SNIPPY_CORE {
     then
         touch !{prefix}.aln
     fi
+
+    # create clean alignment for Gubbins
+    snippy-clean_full_aln !{prefix}.full.aln > !{prefix}.clean.full.aln
 
     # get constant sites
     snp-sites -C !{prefix}.full.aln > !{prefix}-constant-sites.txt || true
