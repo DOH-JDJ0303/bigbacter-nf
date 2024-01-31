@@ -55,11 +55,8 @@ process SNIPPY_SINGLE {
     # compress output
     tar -czvf !{sample}.tar.gz !{sample}/
 
-    #### VERSION INFO ####
-    cat <<-END_VERSIONS > versions.yml
-    "!{task.process}":
-        snippy: $(snippy --version | cut -f 2 -d ' ')
-    END_VERSIONS
+    #### VERSION INFO #### - normal approach throws error
+    echo -e "\\"!{task.process}\\":\n    snippy: $(snippy --version | cut -f 2 -d ' ')" > versions.yml
     '''
 }
 
@@ -75,7 +72,7 @@ process SNIPPY_CORE {
     tuple val(taxa), val(cluster), path("${prefix}.snippy.stats"),                              emit: stats
     tuple val(taxa), val(cluster), path("${prefix}.aln"), path("${prefix}-constant-sites.txt"), emit: aln
     tuple val(taxa), val(cluster), path("${prefix}.full.aln"),                                  emit: full_aln
-    tuple val(taxa), val(cluster), path("${prefix}.clean.full.aln"),                            emit: clean_aln
+    tuple val(taxa), val(cluster), path("${prefix}.clean.aln"),                            emit: clean_aln
     path 'versions.yml',                                                                        emit: versions
 
     when:
@@ -148,7 +145,7 @@ process SNIPPY_CORE {
     fi
 
     # create clean alignment for Gubbins
-    snippy-clean_full_aln !{prefix}.full.aln > !{prefix}.clean.full.aln
+    snippy-clean_full_aln !{prefix}.full.aln > !{prefix}.clean.aln
 
     # get constant sites
     snp-sites -C !{prefix}.full.aln > !{prefix}-constant-sites.txt || true

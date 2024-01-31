@@ -11,11 +11,11 @@ WorkflowBigbacter.initialise(params, log)
 
 // TODO nf-core: Add all file path parameters for the pipeline to the list below
 // Check input path parameters to see if they exist
-def checkPathParamList = [ params.input, params.db, params.multiqc_config ]
+def checkPathParamList = [ params.db, params.multiqc_config ]
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
 // Check mandatory parameters
-if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
+if (! (params.input || params.ncbi)) { exit 1, 'Input not specified!' } else{ manifest = Channel.empty()}
 if (params.db) { ch_db = file(params.db) } else { exit 1, 'BigBacter database not specified!' }
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -43,6 +43,8 @@ include { CORE             } from '../subworkflows/local/core'
 include { ACCESSORY        } from '../subworkflows/local/accessory'
 include { PUSH_FILES       } from '../subworkflows/local/push_files'
 
+include { NCBI_DATASETS    } from '../modules/local/ncbi-datasets'
+include { FASTERQDUMP      } from '../modules/local/fasterqdump'
 include { SUMMARY_TABLE    } from '../modules/local/summary-tables'
 include { COMBINED_SUMMARY } from '../modules/local/combined-summary'
 
@@ -58,6 +60,21 @@ include { COMBINED_SUMMARY } from '../modules/local/combined-summary'
 include { TIMESTAMP                   } from '../modules/local/get-timestamp'
 include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
+
+
+/*
+=============================================================================================================================
+    WORKFLOW FUNCTIONS
+=============================================================================================================================
+*/
+// get list of isolates in each cluster for a taxa
+def write_manifest ( sample, taxa, assembly, fastq_1, fastq_2, manifest_file ) {
+    // create file
+    manfile = file(manifest_file)
+    // append rows
+    row = "\n"+sample+","+taxa+","+assembly+","+fastq_1+","+fastq_2
+    manfile = manfile.append(row)
+}
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -86,24 +103,67 @@ workflow BIGBACTER {
         CHECK SAMPLESHEET
     =============================================================================================================================
     */
-    // SUBWORKFLOW: Read in samplesheet, validate and stage input files
-    INPUT_CHECK (
-       ch_input,
-       timestamp
-    )
-    ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
-    // The 'single_end' field is removed because samples must be paired end.
-    INPUT_CHECK
-      .out
-      .manifest
-      .map{ tuple(it.sample, it.taxa, it.assembly, it.fastq_1, it.fastq_2)}
-      .set{manifest}
+    if (params.input != "${projectDir}/assets/samplesheet.csv"){
+        // Create input channel 
+        ch_input = file(params.input)
+
+        // SUBWORKFLOW: Read in samplesheet, validate and stage input files
+        INPUT_CHECK (
+            ch_input,
+            timestamp
+        )
+        ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
+        // The 'single_end' field is removed because samples must be paired end.
+        INPUT_CHECK
+            .out
+            .manifest
+            .map{ tuple(it.sample, it.taxa, it.assembly, it.fastq_1, it.fastq_2) }
+            .set{manifest}
+    }
+
+    /*
+    =============================================================================================================================
+        PREPARE INPUTS FROM NCBI
+    =============================================================================================================================
+    */
+    if (params.ncbi){
+        // Load NCBI samplesheet
+        Channel
+            .fromPath(params.ncbi)
+            .splitCsv(header: true)
+            .map{ tuple(it.sample, it.taxa, it.assembly, it.sra) }
+            .set{ ch_ncbi }
+        // MODULE: Download genome assemblies from NCBI
+        NCBI_DATASETS(
+            ch_ncbi
+        )
+        ch_versions = ch_versions.mix(NCBI_DATASETS.out.versions)
+
+        // MODULE: Download reads assemblies from NCBI
+        FASTERQDUMP(
+            ch_ncbi
+        )
+        ch_versions = ch_versions.mix(FASTERQDUMP.out.versions)
+
+        // Added samples to the manifest channel
+        ch_ncbi
+            .map{ sample, taxa, assembly, sra -> [ sample, taxa ] }
+            .join(NCBI_DATASETS.out.assembly, by: 0)
+            .join(FASTERQDUMP.out.reads, by: 0)
+            .concat(manifest)
+            .set{ manifest }
+    }
 
     // set validated manifest path
-    INPUT_CHECK
-      .out
-      .csv
-      .set{ manifest_path }
+    Channel
+        .fromPath(file("${workDir}").resolve("${workflow.runName}-samplesheet.csv"))
+        .map{ file -> [ file, file.delete() ]  }
+        .map{ file, delete_status -> [ file, file.append("sample,taxa,assembly,fastq_1,fastq_2") ] }
+        .map{ file, append_null -> file }
+        .set{ manifest_path }
+    manifest
+        .combine(manifest_path)
+        .map{  sample, taxa, assembly, fastq_1, fastq_2, manifest_path -> [ write_manifest(sample, taxa, assembly, fastq_1, fastq_2, manifest_path) ] }
 
     /*
     =============================================================================================================================
