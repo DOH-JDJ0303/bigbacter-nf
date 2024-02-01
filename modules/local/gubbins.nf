@@ -40,7 +40,6 @@ process GUBBINS {
     run_gubbins.py \\
         --threads $task.cpus \\
         --prefix ${prefix} \\
-        --starting-tree ${tree} \\
         \${bs} \\
         ${args} \\
         ${aln}

@@ -224,8 +224,7 @@ workflow BIGBACTER {
 
     // MODULE: Make individual summary tables
     SUMMARY_TABLE(
-        core_summary,
-        manifest_path,
+        core_summary.combine(manifest_path),
         timestamp
     )
 

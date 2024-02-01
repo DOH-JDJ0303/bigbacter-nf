@@ -44,8 +44,7 @@ workflow ACCESSORY {
     */ 
     // MODULE: Distance matrix figure
     DIST_MAT (
-        FORMAT_DIST.out.dist.map{ taxa, cluster, dist, tree -> [ taxa, cluster, "poppunk", dist, tree ] },
-        manifest_file,
+        FORMAT_DIST.out.dist.map{ taxa, cluster, dist, tree -> [ taxa, cluster, "poppunk", dist, tree ] }.combine(manifest_file),
         "long",
         "Accessory",
         100,

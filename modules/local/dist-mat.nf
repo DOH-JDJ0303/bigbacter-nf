@@ -4,8 +4,7 @@ process DIST_MAT {
     stageInMode 'copy'
 
     input:
-    tuple val(taxa), val(cluster), val(input_source), path(dist), path(tree)
-    path manifest
+    tuple val(taxa), val(cluster), val(input_source), path(dist), path(tree), path(manifest)
     val input_format
     val input_type
     val threshold

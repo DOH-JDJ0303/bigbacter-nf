@@ -3,8 +3,7 @@ process SUMMARY_TABLE {
     label 'process_low'
 
     input:
-    tuple val(taxa), val(cluster), path(dists), path(stats)
-    path manifest
+    tuple val(taxa), val(cluster), path(dists), path(stats), path(manifest)
     val timestamp
 
     output:

@@ -78,20 +78,20 @@ workflow CORE {
     ch_versions = ch_versions.mix(SNIPPY_SINGLE.out.versions)
     // Group samples by taxa and cluster
     manifest
-        .map{ sample, taxa, assembly, fastq_1, fastq_2, cluster, status, ref -> [sample, taxa, cluster, status, ref] }
+        .map{ sample, taxa, assembly, fastq_1, fastq_2, cluster, status, ref -> [ sample, taxa, cluster, status, ref ] }
         .join(SNIPPY_SINGLE.out.results)
         .groupTuple(by: [1,2])
-        .map {sample, taxa, cluster, status, ref, new_snps -> [taxa, cluster, status.get(0), ref.get(0), new_snps]}
+        .map {sample, taxa, cluster, status, ref, new_snps -> [ taxa, cluster, status.get(0), ref.get(0), new_snps ]}
         .set {clust_grps}
     // New clusters - add empty tuple in place of historic SNP files
     clust_grps
         .filter{ taxa, cluster, status, ref, new_snps -> ! status }
-        .map{ taxa, cluster, status, ref, new_snps -> [taxa, cluster, ref, new_snps, []] }
+        .map{ taxa, cluster, status, ref, new_snps -> [ taxa, cluster, ref, new_snps, [] ] }
         .set{ clust_grp_new }
     // Old clusters - resolve path to snippy directory in the BigBacter database
     clust_grps
         .filter{ taxa, cluster, status, ref, new_snps -> status }
-        .map{ taxa, cluster, status, ref, new_snps -> [taxa, cluster, ref, new_snps, file(file(params.db) / taxa / "clusters" / cluster / "snippy", type: 'dir')] }
+        .map{ taxa, cluster, status, ref, new_snps -> [ taxa, cluster, ref, new_snps, file(file(params.db) / taxa / "clusters" / cluster / "snippy", type: 'dir') ] }
         .set{ clust_grp_old }
     // Combine new and old cluster channels
     clust_grp_new
@@ -119,7 +119,7 @@ workflow CORE {
     SNIPPY_CORE
         .out
         .aln
-        .map{ taxa, cluster, aln, const_sites -> [taxa, cluster, aln, const_sites, count_alignments(aln), file(aln).isEmpty()] }
+        .map{ taxa, cluster, aln, const_sites -> [ taxa, cluster, aln, const_sites, count_alignments(aln), file(aln).isEmpty() ] }
         .set{ aln_w_metrics }
 
     /*
@@ -132,8 +132,8 @@ workflow CORE {
     */
     // Filter clusters exceeding max_ml and above min_tree
     aln_w_metrics
-        .filter{taxa, cluster, aln, const_sites, count, snp_status -> count > params.max_ml && count > params.min_tree && ! snp_status }
-        .map{taxa, cluster, aln, const_sites, count, snp_status -> [taxa, cluster, aln]}
+        .filter{ taxa, cluster, aln, const_sites, count, snp_status -> count > params.max_ml && count > params.min_tree && ! snp_status }
+        .map{ taxa, cluster, aln, const_sites, count, snp_status -> [ taxa, cluster, aln ]}
         .set{ nj_samples }
     // MODULE: Run Rapidnj 
     RAPIDNJ(
@@ -151,8 +151,8 @@ workflow CORE {
     */
     // Filter clusters at or below max_ml and above min_tree
     aln_w_metrics
-        .filter{taxa, cluster, aln, const_sites, count, snp_status -> count <= params.max_ml && count > params.min_tree && ! snp_status }
-        .map{taxa, cluster, aln, const_sites, count, snp_status -> [taxa, cluster, aln, const_sites, count]}
+        .filter{ taxa, cluster, aln, const_sites, count, snp_status -> count <= params.max_ml && count > params.min_tree && ! snp_status }
+        .map{ taxa, cluster, aln, const_sites, count, snp_status -> [ taxa, cluster, aln, const_sites, count ]}
         .set{ ml_samples }
     // MODULE: Run IQTREE2
     IQTREE(
@@ -171,7 +171,7 @@ workflow CORE {
         SNIPPY_CORE
             .out
             .clean_aln
-            .join(IQTREE.out.result, by: [0, 1]),
+            .join(IQTREE.out.result, by: [0, 1]), // merging with the IQTREE output ensures only clusters with enough samples/SNPs get through
         timestamp
     )
     ch_versions = ch_versions.mix(GUBBINS.out.versions)
@@ -228,8 +228,7 @@ workflow CORE {
     
     // Tree figures
     TREE_FIGURE (
-        all_trees,
-        manifest_file,
+        all_trees.combine(manifest_file),
         timestamp
     )
 
@@ -250,8 +249,7 @@ workflow CORE {
 
     // Create distance matrix figure
     DIST_MAT (
-        all_dists,
-        manifest_file,
+        all_dists.combine(manifest_file),
         "wide",
         "Core SNPs",
         "FALSE",
