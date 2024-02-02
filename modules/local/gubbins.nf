@@ -5,21 +5,20 @@ process GUBBINS {
     conda "bioconda::gubbins=3.3.1"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/gubbins%3A3.3.1--py39pl5321h3d4b85c_0' :
-        'quay.io/biocontainers/3.3.1--py310pl5321h83093d7_0' }"
+        'quay.io/biocontainers/gubbins:3.3.1--py310pl5321h83093d7_0' }"
 
     input:
-    tuple val(taxa), val(cluster), path(aln), path(tree), val(count)
+    tuple val(taxa), val(cluster), path(aln), path(const_sites), val(count)
     val timestamp
 
     output:
-    tuple val(taxa), val(cluster), path("*.fasta"),                           emit: aln
-    tuple val(taxa), val(cluster), path("*.gff"),                             emit: gff
-    tuple val(taxa), val(cluster), path("*.vcf"),                             emit: vcf
-    tuple val(taxa), val(cluster), path("*.gubbins.stats"),                   emit: stats
-    tuple val(taxa), val(cluster), path("*.recombination_predictions.embl"),  emit: embl_predicted
-    tuple val(taxa), val(cluster), path("*.branch_base_reconstruction.embl"), emit: embl_branch
-    tuple val(taxa), val(cluster), path("*.gubbins.nwk"),                     emit: tree
-    path "versions.yml",                                                      emit: versions
+    tuple val(taxa), val(cluster), path("*.fasta"), path(const_sites), val(count), emit: aln
+    tuple val(taxa), val(cluster), path("*.gff"),                                  emit: gff
+    tuple val(taxa), val(cluster), path("*.vcf"),                                  emit: vcf
+    tuple val(taxa), val(cluster), path("*.gubbins.stats"),                        emit: stats
+    tuple val(taxa), val(cluster), path("*.recombination_predictions.embl"),       emit: embl_predicted
+    tuple val(taxa), val(cluster), path("*.branch_base_reconstruction.embl"),      emit: embl_branch
+    path "versions.yml",                                                           emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -28,33 +27,29 @@ process GUBBINS {
     def args = task.ext.args ?: ''
     prefix   = "${timestamp}-${taxa}-${cluster}"
     """
-    # perform bootstrapping if there are more than 4 samples
-    if [[ !{count} > 4 ]]
+    # determine model and tree building method
+    if [ "${args}" == '' ]
     then
-        bs="-B 1000"
+        method_model="${args}"
     else
-        bs=""
+        if [[ !{count} > ${params.max_ml} ]]
+        then
+            method_model="--tree-builder rapidnj"
+        else
+            method_model="--tree-builder iqtree --custom-model GTR+I+G"
+        fi
     fi
 
     # Run Gubbins
     run_gubbins.py \\
         --threads $task.cpus \\
         --prefix ${prefix} \\
-        --starting-tree ${tree} \\
-        \${bs} \\
-        ${args} \\
+        \${method_model} \\
         ${aln}
 
     # rename stats for easy summary
-    mv *.csv ${prefix}.gubbins.stats
-
-    # rename tree for emitting
-    if [[ !{count} > 4 ]]
-    then
-        cp ${prefix}.final_bootstrap_tree.tre ${prefix}.gubbins.nwk
-    else
-        cp ${prefix}.final_tree.tre ${prefix}.gubbins.nwk
-    fi
+    mv *.per_branch_statistics.csv ${prefix}.gubbins.stats
+    
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         gubbins: \$(run_gubbins.py --version 2>&1)
