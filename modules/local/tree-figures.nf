@@ -8,7 +8,9 @@ process TREE_FIGURE {
 
     output:
     path "*.jpg*"
-    path "corrected.nwk", optional: true
+    path "*.corrected.nwk", optional: true
+    path "*.scaled.nwk",    optional: true
+
 
     when:
     task.ext.when == null || task.ext.when

@@ -46,7 +46,7 @@ df.meta <- data.frame(sample = tree$tip.label, font_face = "plain", status = "OL
          status = case_when(sample %in% new_samples ~ "NEW",
                           TRUE ~ status))
 
-#---- RESCALE BRANCH LENGTHS (SNIPPY W/ ML ONLY) ----#
+#---- RESCALE BRANCH LENGTHS (ML only) ----#
 if(file.exists(core_stats)){
   ref_length <- read_tsv(core_stats) %>%
     slice(1) %>%
