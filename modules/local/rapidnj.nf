@@ -10,12 +10,12 @@ process RAPIDNJ {
         'quay.io/biocontainers/mulled-v2-805c6e0f138f952f9c61cdd57c632a1a263ea990:3c52e4c8da6b3e4d69b9ca83fa4d366168898179-0' }"
 
     input:
-    tuple val(taxa), val(cluster), path(aln)
+    tuple val(taxa), val(cluster), path(aln), val(source)
     val timestamp
 
     output:
-    tuple val(taxa), val(cluster), path("*.treefile"), emit: result, optional: true
-    path 'versions.yml',                               emit: versions
+    tuple val(taxa), val(cluster), path("*.nwk"), val(source), emit: result
+    path 'versions.yml',                                       emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -32,7 +32,7 @@ process RAPIDNJ {
         $args \\
         -i sth \\
         -c $task.cpus \\
-        -x ${prefix}.treefile
+        -x "${prefix}_core-snps_NJ.${source}.nwk"
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

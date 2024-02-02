@@ -11,7 +11,6 @@
             "fa_icon": "fas fa-terminal",
             "description": "Define where the pipeline should find input data and save output data.",
             "required": [
-                "input",
                 "outdir",
                 "db"
             ],
@@ -25,6 +24,12 @@
                     "description": "Path to comma-separated file containing information about the samples in the experiment.",
                     "help_text": "You will need to create a design file with information about the samples in your experiment before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 3 columns, and a header row. See [usage docs](https://nf-co.re/bigbacter/usage#samplesheet-input).",
                     "fa_icon": "fas fa-file-csv"
+                },
+                "ncbi": {
+                    "type": "string",
+                    "description": "Path to comma-separated file containing information for samples that should be pulled from NCBI.",
+                    "pattern": "^\\S+\\.csv$",
+                    "format": "file-path"
                 },
                 "outdir": {
                     "type": "string",
@@ -47,7 +52,6 @@
             "properties": {
                 "push": {
                     "type": "boolean",
-                    "default": false,
                     "fa_icon": "fas fa-file-export",
                     "description": "Push files to database (Default: false). It is recommended that you check all outputs before pushing files to your BigBacter database. If results are deemed acceptable, the run can be resumed with this option set to 'true'. This avoids adding abnormal samples that may impact future analyses."
                 },
@@ -69,6 +73,12 @@
                     "description": "Percentage of low coverage sites allowed for a sample to be included in the core SNP analysis (default: 5)",
                     "fa_icon": "fas fa-chart-pie"
                 },
+                "max_depth": {
+                    "type": "integer",
+                    "default": 100,
+                    "fa_icon": "fas fa-chart-pie",
+                    "description": "Maximum read depth per sample. This is used by Snippy to randomly subsample reads."
+                },
                 "strong_link_cutoff": {
                     "type": "integer",
                     "default": 10,
@@ -87,11 +97,21 @@
                     "description": "Maximum number of samples in a cluster for IQTREE to be run. This is to avoid extremely long analyses due to large trees. If the number of samples in a cluster exceeds this amount, Rapidnj will be used instead.",
                     "fa_icon": "fas fa-tree"
                 },
+                "min_tree": {
+                    "type": "integer",
+                    "default": 2,
+                    "fa_icon": "fas fa-tree",
+                    "description": "Minimum number of samples in a cluster for a tree to be generated (sans reference). Must be greater than 2."
+                },
                 "resolve_merged": {
                     "type": "boolean",
                     "fa_icon": "fas fa-object-group",
                     "description": "Option to resolve merged PopPUNK clusters. WARNING: Failure to resolve merged clusters may lead to missed genetic relationships.",
                     "default": true
+                },
+                "run_id": {
+                    "fa_icon": "fas fa-skull-crossbones",
+                    "description": "Run ID. This will bypass the epoch timestamp. Only change if you know what you are doing."
                 }
             },
             "fa_icon": "fas fa-terminal"

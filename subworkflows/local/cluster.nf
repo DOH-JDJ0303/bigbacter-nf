@@ -7,6 +7,11 @@ include { POPPUNK_ASSIGN          } from '../../modules/local/poppunk-assign'
 include { POPPUNK_VISUAL          } from '../../modules/local/poppunk-visualize'
 include { RESOLVE_MERGED_CLUSTERS } from '../../modules/local/resolve-merged-clusters'
 
+/*
+=============================================================================================================================
+    SUBWORKFLOW FUNCTIONS
+=============================================================================================================================
+*/
 // Function for determining the most recent PopPUNK database
 def get_ppdb ( taxa ) {
     // determine path to taxa database
@@ -51,6 +56,11 @@ def db_taxa_clusters ( taxa , timestamp ) {
     return db_info_file
 }
 
+/*
+=============================================================================================================================
+    SUBWORKFLOW
+=============================================================================================================================
+*/
 workflow CLUSTER {
     take:
     manifest   // channel: [ val(sample), val(taxa), file(assembly), file(fastq_1), file(fastq_2) ]
@@ -58,6 +68,11 @@ workflow CLUSTER {
 
     main:
     ch_versions = Channel.empty()
+    /*
+    =============================================================================================================================
+        ASSIGN CLUSTERS
+    =============================================================================================================================
+    */
     // Determine the most recent PopPUNK database for each species and then group by species
     manifest
         .map { sample, taxa, assembly, fastq_1, fastq_2 -> [taxa, sample, assembly] }
@@ -88,11 +103,14 @@ workflow CLUSTER {
         .map { tuple(it.Taxon.get(0), it.Cluster.get(0)) } // 'Taxon' == 'sample' != 'taxa'
         .join(manifest.map { sample, taxa, assembly, fastq_1, fastq_2  -> [ sample, taxa ]}, by: 0)
         .set {cluster_results}
+    
+    /*
+    =============================================================================================================================
+        RESOLVE MERGED CLUSTERS
+    =============================================================================================================================
+    */
 
-    // 
-    // MODULE: Resolve merged clusters
-    //
-
+    // If resolve_merged is 'true'
     if ( params.resolve_merged ) {
         // get list of isolates that belong to each cluster in the BiBacter database
         manifest
@@ -138,10 +156,12 @@ workflow CLUSTER {
             .combine(cluster_results.map { sample, merged_cluster, taxa -> [ taxa, merged_cluster, sample ] }, by: [0, 1])
             .set {stale_merges } // [ taxa, merged_cluster, db_info, dist ]
 
+        // MODULE: Resolve merged clusters
         RESOLVE_MERGED_CLUSTERS (
             stale_merges
         )
 
+        // Combine resolved cluster channels 
         cluster_results
             .map { sample, cluster, taxa -> [ sample, taxa, cluster, cluster.contains("_") ] }
             .filter { sample, taxa, cluster, merge_status -> ! merge_status }
@@ -151,8 +171,9 @@ workflow CLUSTER {
             .set { cluster_results }
 
     }
+    // if resolve_merged is 'false'
     if ( ! params.resolve_merged ) {
-        // load merged clusters
+        // load merged clusters and print warning message for each
         POPPUNK_ASSIGN
             .out
             .merged_clusters
@@ -161,13 +182,13 @@ workflow CLUSTER {
             .map { tuple(it.taxa.get(0), it.merged_cluster.get(0)) }
             .distinct()
             .map { taxa, merged_cluster -> println( "\nWARNING: You have selected not to resolve " + taxa + " cluster "+ merged_cluster +". \nThis can lead to missed genetic relationships. See https://github.com/DOH-JDJ0303/bigbacter-nf for more information.\n") }
-        
-        // remove status from 
-        cluster_results
-            .map { sample, cluster, taxa ->  [sample, taxa, cluster ] }
-            .set { cluster_results }
     }
-    
+
+    /*
+    =============================================================================================================================
+        FORMAT CLUSTERS
+    =============================================================================================================================
+    */
     // Add padding to cluster numbers and determine if they are new or old
     cluster_results
         .map { sample, taxa, cluster -> [sample, cluster.padLeft(5, "0"), get_status(taxa, cluster.padLeft(5, "0"))]}

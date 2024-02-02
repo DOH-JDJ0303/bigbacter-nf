@@ -3,8 +3,7 @@ process SUMMARY_TABLE {
     label 'process_low'
 
     input:
-    tuple val(taxa), val(cluster), path(dist), path(stats)
-    path manifest
+    tuple val(taxa), val(cluster), path(dists), path(stats), path(manifest)
     val timestamp
 
     output:
@@ -22,8 +21,10 @@ process SUMMARY_TABLE {
         "!{cluster}" \
         "!{params.strong_link_cutoff}" \
         "!{params.inter_link_cutoff}" \
-        !{stats} \
-        !{dist} \
+        *.snippy.stats \
+        *.snippy.dist \
+        *.gubbins.stats \
+        *.gubbins.dist \
         !{manifest}
     '''
 }

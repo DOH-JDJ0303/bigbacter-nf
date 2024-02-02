@@ -1,14 +1,14 @@
 process DIST_MAT {
-    tag "${taxa}_${cluster}"
+    tag "${taxa}_${cluster}_${input_source}"
     label 'process_low'
     stageInMode 'copy'
 
     input:
-    tuple val(taxa), val(cluster), path(dist), path(tree)
-    path manifest
+    tuple val(taxa), val(cluster), val(input_source), path(dist), path(tree), path(manifest)
     val input_format
     val input_type
     val threshold
+    val percent_bool
     val timestamp
 
     output:
@@ -23,6 +23,15 @@ process DIST_MAT {
     prefix = "${timestamp}-${taxa}-${cluster}"
     '''    
     # make figure
-    dist-figures.R "!{dist}" "!{tree}" "!{manifest}" "!{input_format}" "!{input_type}" "!{threshold}" "!{prefix}"
+    dist-figures.R \
+        "!{dist}" \
+        "!{tree}" \
+        "!{manifest}" \
+        "!{input_format}" \
+        "!{input_type}" \
+        "!{input_source}" \
+        "!{threshold}" \
+        "!{percent_bool}" \
+        "!{prefix}"
     '''
 }
