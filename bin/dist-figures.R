@@ -13,7 +13,7 @@ manifest_path <- args[3]
 input_format <- args[4] # 'long' or 'wide'
 input_type <- args[5] # 'Core SNP' or 'Accessory'
 input_source <- args[6]
-threshold <- as.numeric(args[7]) # 100 or 1
+threshold <- args[7] # 100 or 1
 percent <- args[8] # if dist should be converted to percentage - true or false
 prefix <- args[9] # output prefix
 

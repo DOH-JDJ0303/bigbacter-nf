@@ -258,9 +258,8 @@ workflow BIGBACTER {
         // SUBWORKFLOW: Push new BigBacter database
         PUSH_FILES(
             cluster_files,
-            taxa_files,
-            COMBINED_SUMMARY.out.summary
-            )
+            taxa_files
+        )
     }
 
     /*
