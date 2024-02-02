@@ -35,16 +35,12 @@ n_iso_qc <- snippy_stats %>%
 # load Gubbins stats, if it exists
 gubbins_stats <- snippy_stats %>%
     select(ID) %>%
-    mutate(RECOMB_VARIANT = "not performed",
-           RECOMB_TOTAL = "not performed",
-           RECOMB_BLOCK = "not performed")
+    mutate(RECOMB_VARIANT = "not performed")
 if(file.exists(gubbins_stats_file)){
   tmp <- read_tsv(gubbins_stats_file) %>%
       rename(ID = Node,
-             RECOMB_VARIANT = 'Number of SNPs Inside Recombinations',
-             RECOMB_TOTAL = 'Bases in Recombinations',
-             RECOMB_BLOCK = 'Number of Recombination Blocks') %>%
-      select(ID, RECOMB_VARIANT, RECOMB_TOTAL, RECOMB_BLOCK)
+             RECOMB_VARIANT = 'Cumulative Bases in Recombinations') %>%
+      select(ID, RECOMB_VARIANT)
   gubbins_stats <- gubbins_stats %>%
     filter(! ID %in% tmp$ID) %>%
     rbind(tmp)
@@ -127,7 +123,7 @@ summary <- snippy_stats %>%
          ISO_IN_CLUSTER = n_iso,
          ISO_PASS_QC = n_iso_qc,
          ) %>%
-  select(ID, STATUS, QUAL, RUN_ID, TAXA, CLUSTER, ISO_IN_CLUSTER, ISO_PASS_QC, MEAN_SNP_DIST_SNIPPY, MIN_SNP_DIST_SNIPPY, MAX_SNP_DIST_SNIPPY, STRONG_LINKAGE_SNIPPY, INTER_LINKAGE_SNIPPY, MEAN_SNP_DIST_GUBBINS, MIN_SNP_DIST_GUBBINS, MAX_SNP_DIST_GUBBINS, STRONG_LINKAGE_GUBBINS, INTER_LINKAGE_GUBBINS, LENGTH, ALIGNED, UNALIGNED, RECOMB_TOTAL, RECOMB_BLOCK, VARIANT, RECOMB_VARIANT, HET, MASKED, LOWCOV, PER_GENFRAC, PER_LOWCOV, PER_HET)
+  select(ID, STATUS, QUAL, RUN_ID, TAXA, CLUSTER, ISO_IN_CLUSTER, ISO_PASS_QC, MEAN_SNP_DIST_SNIPPY, MIN_SNP_DIST_SNIPPY, MAX_SNP_DIST_SNIPPY, STRONG_LINKAGE_SNIPPY, INTER_LINKAGE_SNIPPY, MEAN_SNP_DIST_GUBBINS, MIN_SNP_DIST_GUBBINS, MAX_SNP_DIST_GUBBINS, STRONG_LINKAGE_GUBBINS, INTER_LINKAGE_GUBBINS, LENGTH, ALIGNED, UNALIGNED, VARIANT, RECOMB_VARIANT, HET, MASKED, LOWCOV, PER_GENFRAC, PER_LOWCOV, PER_HET)
 
 ## make file name
 filename <- paste0(run_id,"-",taxa,"-",cluster,"-summary.tsv")

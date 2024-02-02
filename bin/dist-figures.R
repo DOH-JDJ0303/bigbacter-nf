@@ -75,9 +75,8 @@ if(percent == "true" | percent == "True" | percent == "T" | percent == "TRUE"){
 }
 # create filtered dataset for displaying text values in plot
 text_data <- df %>%
-  filter(dist < threshold) %>%
+  filter(as.numeric(dist) < as.numeric(threshold)) %>%
   mutate(dist = round(dist, digits = 2))
-
 
 #---- ARRANGE BY TREE TIP ORDER (IF TREE PROVIDED) ----#
 if(file.exists(tree_path)){
