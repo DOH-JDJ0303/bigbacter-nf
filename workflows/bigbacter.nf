@@ -61,21 +61,6 @@ include { TIMESTAMP                   } from '../modules/local/get-timestamp'
 include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
-
-/*
-=============================================================================================================================
-    WORKFLOW FUNCTIONS
-=============================================================================================================================
-*/
-// get list of isolates in each cluster for a taxa
-def write_manifest ( sample, taxa, assembly, fastq_1, fastq_2, manifest_file ) {
-    // create file
-    manfile = file(manifest_file)
-    // append rows
-    row = "\n"+sample+","+taxa+","+assembly+","+fastq_1+","+fastq_2
-    manfile = manfile.append(row)
-}
-
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RUN MAIN WORKFLOW
@@ -157,16 +142,14 @@ workflow BIGBACTER {
             .set{ manifest }
     }
 
-    // set validated manifest path
-    Channel
-        .fromPath(file("${workDir}").resolve("${workflow.runName}-samplesheet.csv"))
-        .map{ file -> [ file, file.delete() ]  }
-        .map{ file, delete_status -> [ file, file.append("sample,taxa,assembly,fastq_1,fastq_2") ] }
-        .map{ file, append_null -> file }
-        .set{ manifest_path }
+    // set validated manifest path - easier ways to do this but this works with Seqera Cloud
     manifest
-        .combine(manifest_path)
-        .map{  sample, taxa, assembly, fastq_1, fastq_2, manifest_path -> [ write_manifest(sample, taxa, assembly, fastq_1, fastq_2, manifest_path) ] }
+        .map{ sample, taxa, assembly, fastq_1, fastq_2 -> sample+","+taxa+","+assembly+","+fastq_1+","+fastq_2 }
+        .set{samplesheetlines}
+    Channel.of("sample,taxa,assembly,fastq_1,fastq_2")
+        .concat(samplesheetlines)
+        .collectFile(name: "samplesheet-collected.csv", sort: 'index', newLine: true)
+        .set{ manifest_path }
 
     /*
     =============================================================================================================================
