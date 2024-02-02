@@ -23,8 +23,8 @@ workflow ACCESSORY {
     */ 
     // Select tree generated using Snippy alignment (ML or NJ)
     core_tree
-        .filter{ taxa, cluster, tree, type, method, source, stats -> source == "snippy" }
-        .map{ taxa, cluster, tree, type, method, source, stats -> [ taxa, cluster, tree ] }
+        .filter{ taxa, cluster, tree, source, type, method, stats -> source == "snippy" }
+        .map{ taxa, cluster, tree, source, type, method, stats -> [ taxa, cluster, tree ] }
         .set{ core_tree }
     // Combine tree with the full PopPUNK distance file
     core_acc_dist

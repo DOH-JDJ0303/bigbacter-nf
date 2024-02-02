@@ -33,6 +33,7 @@ if(input_format == "wide"){
   df.long <- read_tsv(dist_path) %>%
     rename(ID1 = 1) %>%
     pivot_longer(names_to = "ID2", values_to = "dist", cols = 2:ncol(.)) %>%
+    mutate(dist = as.numeric(dist)) %>%
     drop_na()
   # set plot data to long format
   df <- df.long
@@ -75,7 +76,7 @@ if(percent == "true" | percent == "True" | percent == "T" | percent == "TRUE"){
 }
 # create filtered dataset for displaying text values in plot
 text_data <- df %>%
-  filter(as.numeric(dist) < as.numeric(threshold)) %>%
+  subset(as.numeric(dist) < as.numeric(threshold)) %>%
   mutate(dist = round(dist, digits = 2))
 
 #---- ARRANGE BY TREE TIP ORDER (IF TREE PROVIDED) ----#

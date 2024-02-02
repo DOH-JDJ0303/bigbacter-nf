@@ -101,13 +101,17 @@
                     "type": "integer",
                     "default": 2,
                     "fa_icon": "fas fa-tree",
-                    "description": "Minimum number of samples in a cluster for a tree to be generated."
+                    "description": "Minimum number of samples in a cluster for a tree to be generated (sans reference). Must be greater than 2."
                 },
                 "resolve_merged": {
                     "type": "boolean",
                     "fa_icon": "fas fa-object-group",
                     "description": "Option to resolve merged PopPUNK clusters. WARNING: Failure to resolve merged clusters may lead to missed genetic relationships.",
                     "default": true
+                },
+                "run_id": {
+                    "fa_icon": "fas fa-skull-crossbones",
+                    "description": "Run ID. This will bypass the epoch timestamp. Only change if you know what you are doing."
                 }
             },
             "fa_icon": "fas fa-terminal"

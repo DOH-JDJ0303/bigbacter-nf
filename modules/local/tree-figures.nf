@@ -3,7 +3,7 @@ process TREE_FIGURE {
     label 'process_low'
 
     input:
-    tuple val(taxa), val(cluster), path(tree), val(tree_type), val(tree_method), val(tree_source), path(core_stats), path(manifest)
+    tuple val(taxa), val(cluster), path(tree), val(tree_source), val(tree_type), val(tree_method),  path(core_stats), path(manifest)
     val timestamp
 
     output:

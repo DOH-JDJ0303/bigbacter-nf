@@ -7,7 +7,7 @@ include { SNIPPY_CORE   } from '../../modules/local/snippy'
 include { GUBBINS       } from '../../modules/local/gubbins'
 include { SNP_DISTS     } from '../../modules/local/snp-dists'
 include { IQTREE        } from '../../modules/local/iqtree'
-include { RAPIDNJ       } from '../../modules/nf-core/rapidnj/main'
+include { RAPIDNJ       } from '../../modules/local/rapidnj'
 include { TREE_FIGURE   } from '../../modules/local/tree-figures'
 include { DIST_MAT      } from '../../modules/local/dist-mat'
 
@@ -112,28 +112,50 @@ workflow CORE {
 
     /* 
     =============================================================================================================================
-        GATHER METRICS ON CORE ALIGNMENT
+        GATHER CORE ALIGNMENT METRICS
     =============================================================================================================================
     */
     // count the number of samples in each alignment & determine if any SNPs could be identified
     SNIPPY_CORE
         .out
         .aln
-        .map{ taxa, cluster, aln, const_sites -> [ taxa, cluster, aln, const_sites, count_alignments(aln), file(aln).isEmpty() ] }
+        .map{ taxa, cluster, core_aln, clean_aln, const_sites -> [ taxa, cluster, core_aln, clean_aln, const_sites, count_alignments(core_aln), file(core_aln).isEmpty() ] }
+        .filter{ taxa, cluster, core_aln, clean_aln, const_sites, count, snp_status -> ! snp_status && count > params.min_tree } // filter alignments with no SNPs and those below the min number of samples
+        .map{ taxa, cluster, core_aln, clean_aln, const_sites, count, snp_status -> [ taxa, cluster, core_aln, clean_aln, const_sites, count ] }
         .set{ aln_w_metrics }
 
+    
+
+       /*
+    =============================================================================================================================
+        IDENTIFY RECOMBINANT REGIONS
+        - use IQTREE or RAPIDNJ depending on '--max_ml'
+        - alignments without SNPs are excluded
+    =============================================================================================================================
+    */
+    // MODULE: Run Gubbins
+    GUBBINS(
+        aln_w_metrics.map{ taxa, cluster, core_aln, clean_aln, const_sites, count -> [ taxa, cluster, clean_aln,const_sites, count ] },
+        timestamp
+    )
+    ch_versions = ch_versions.mix(GUBBINS.out.versions)
+
+    // Add Gubbins alignments to channel
+    aln_w_metrics
+        .map{ taxa, cluster, core_aln, clean_aln, const_sites, count -> [ taxa, cluster, core_aln, const_sites, count, "snippy" ]} // no longer need the full alignments
+        .concat(GUBBINS.out.aln.map{ taxa, cluster, core_aln, const_sites, count -> [ taxa, cluster, core_aln, const_sites, count, "gubbins" ] })
+        .set{ aln_w_metrics }
     /*
     =============================================================================================================================
         GENERATE NEIGHBOR JOINING TREE
         - only performed for clusters with SNPs, samples > 'max_ml',and samples > 'min_tree'
-        - skips recombination analysis
         - this option should only be used if you do not have the computational power needed for a ML tree
     =============================================================================================================================
     */
     // Filter clusters exceeding max_ml and above min_tree
     aln_w_metrics
-        .filter{ taxa, cluster, aln, const_sites, count, snp_status -> count > params.max_ml && count > params.min_tree && ! snp_status }
-        .map{ taxa, cluster, aln, const_sites, count, snp_status -> [ taxa, cluster, aln ]}
+        .filter{ taxa, cluster, aln, const_sites, count, source -> count > params.max_ml }
+        .map{ taxa, cluster, aln, const_sites, count, source -> [ taxa, cluster, aln, source ]}
         .set{ nj_samples }
     // MODULE: Run Rapidnj 
     RAPIDNJ(
@@ -146,13 +168,13 @@ workflow CORE {
         GENERATE MAXIMUM LIKELIHOOD TREE
         - only performed for clusters with SNPs, samples <= 'max_ml', and samples > 'min_tree'
         - this is the preferred method
-        - acts as first tree for Gubbins
+        - this allows for bootstrapping of Snippy tree - which is not performed on initial iterations by Gubbins
     =============================================================================================================================
     */
     // Filter clusters at or below max_ml and above min_tree
     aln_w_metrics
-        .filter{ taxa, cluster, aln, const_sites, count, snp_status -> count <= params.max_ml && count > params.min_tree && ! snp_status }
-        .map{ taxa, cluster, aln, const_sites, count, snp_status -> [ taxa, cluster, aln, const_sites, count ]}
+        .filter{ taxa, cluster, aln, const_sites, count, source -> count <= params.max_ml }
+        .map{ taxa, cluster, aln, const_sites, count, source -> [ taxa, cluster, aln, const_sites, count, source ]}
         .set{ ml_samples }
     // MODULE: Run IQTREE2
     IQTREE(
@@ -160,34 +182,19 @@ workflow CORE {
         timestamp
     )
     ch_versions = ch_versions.mix(IQTREE.out.versions)
-    /*
-    =============================================================================================================================
-        IDENTIFY RECOMBINANT REGIONS & BUILD TREE
-        - only performed on clusters passed through the IQTREE module
-    =============================================================================================================================
-    */
-    // MODULE: Run Gubbins
-    GUBBINS(
-        SNIPPY_CORE
-            .out
-            .clean_aln
-            .join(IQTREE.out.result, by: [0, 1]), // merging with the IQTREE output ensures only clusters with enough samples/SNPs get through
-        timestamp
-    )
-    ch_versions = ch_versions.mix(GUBBINS.out.versions)
 
     /* 
     =============================================================================================================================
         CALCULATE PAIRWISE SNP DIFFERENCES
-        - performed for all clusters that had SNPs identified
+        - Performed on full Snippy alignments and core Gubbins alignments
     =============================================================================================================================
     */
     // Combine alignment files
     SNIPPY_CORE
         .out
-        .full_aln
-        .map{ taxa, cluster, aln -> [ taxa, cluster, aln, "snippy" ] }
-        .concat( GUBBINS.out.aln.map{ taxa, cluster, aln -> [ taxa, cluster, aln, "gubbins" ] })
+        .aln
+        .map{ taxa, cluster, core_aln, clean_aln, const_sites -> [ taxa, cluster, clean_aln, "snippy" ] }
+        .concat( GUBBINS.out.aln.map{ taxa, cluster, core_aln, const_sites, count -> [ taxa, cluster, core_aln, "gubbins" ] })
         .set{ all_alns }
 
     // Create SNP distance matrix
@@ -196,8 +203,6 @@ workflow CORE {
         timestamp
     )
     ch_versions = ch_versions.mix(SNP_DISTS.out.versions)
-
-    // Add 
 
     /*
     =============================================================================================================================
@@ -208,22 +213,16 @@ workflow CORE {
     RAPIDNJ
         .out
         .result
-        .map{ taxa, cluster, tree -> [taxa, cluster, tree, "Core SNPs", "Neighbor Joining", "snippy", [] ] }
+        .map{ taxa, cluster, tree, source -> [taxa, cluster, tree, source, "Core SNPs", "Neighbor Joining", [] ] }
         .set{ nj_tree }
     IQTREE
         .out
         .result
-        .map{ taxa, cluster, tree, count -> [taxa, cluster, tree, "Core SNPs", "Maximum Likelihood", "snippy" ] }
-        .join(SNIPPY_CORE.out.stats, by: [0,1])
+        .map{ taxa, cluster, tree, source -> [taxa, cluster, tree, source, "Core SNPs", "Maximum Likelihood" ] }
+        .combine(SNIPPY_CORE.out.stats, by: [0,1])
         .set{ ml_tree }
-    GUBBINS
-        .out
-        .tree
-        .map{ taxa, cluster, tree -> [taxa, cluster, tree, "Core SNPs", "Maximum Likelihood", "gubbins", [] ] }
-        .set{ rc_tree }
     ml_tree
         .concat(nj_tree)
-        .concat(rc_tree)
         .set{ all_trees }
     
     // Tree figures
@@ -243,7 +242,7 @@ workflow CORE {
         .out
         .result
         .map{ taxa, cluster, dist, source -> [ taxa, cluster, source, dist ] }
-        .join(all_trees.map{ taxa, cluster, tree, type, method, source, stats -> [ taxa, cluster, source, tree ]}, by: [0,1,2], remainder: true)
+        .join(all_trees.map{ taxa, cluster, tree, source, type, method, stats -> [ taxa, cluster, source, tree ]}, by: [0,1,2], remainder: true)
         .map{ taxa, cluster, source, dist, tree -> [ taxa, cluster, source, dist, tree == null ? [] : tree ] }       
         .set{ all_dists }
 
@@ -252,8 +251,8 @@ workflow CORE {
         all_dists.combine(manifest_file),
         "wide",
         "Core SNPs",
-        "FALSE",
         100,
+        "FALSE",
         timestamp
     )
 
@@ -272,7 +271,7 @@ workflow CORE {
 
     emit:
     snp_files = snp_files   // channel: [ val(taxa), val(cluster), path(ref), path(new_snippy), path(old_snippy) ]
-    tree      = all_trees   // channel: [ val(taxa), val(cluster), path(tree), val(type), val(method), val(source), path(stats) ]
+    tree      = all_trees   // channel: [ val(taxa), val(cluster), path(tree), val(source), val(type), val(method), path(stats) ]
     dist      = all_dists   // channel: [ val(taxa), val(cluster), path(dist), val(source) ]
     stats     = all_stats   // channel: [ val(taxa), val(cluster), path(stats) ]
     versions  = ch_versions // channel: [ versions.yml ]

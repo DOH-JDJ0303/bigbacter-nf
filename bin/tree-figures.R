@@ -47,15 +47,13 @@ df.meta <- data.frame(sample = tree$tip.label, font_face = "plain", status = "OL
                           TRUE ~ status))
 
 #---- RESCALE BRANCH LENGTHS (SNIPPY W/ ML ONLY) ----#
-if(tree_source == "snippy" & tree_method == "Maximum Likelihood"){
+if(file.exists(core_stats)){
   ref_length <- read_tsv(core_stats) %>%
     slice(1) %>%
     .$LENGTH
   tree$edge.length <- as.numeric(tree$edge.length) * as.numeric(ref_length)
   x_label <- "Estimated Nucleotide Substitutions"
   write.tree(tree, paste0(filebase,".scaled.nwk"))
-}else if(tree_source == "gubbins"){
-  x_label <- "Estimated Nucleotide Substitutions"
 }else{
   x_label <- "Divergence"
 }

@@ -98,6 +98,9 @@ workflow BIGBACTER {
     TIMESTAMP()
         .set { timestamp }
 
+    // provide custom run ID that replaces the timestamp - set up this way to avoid being a value channel 
+    params.run_id ? timestamp.map{ timestamp -> params.run_id }.set{ timestamp } : timestamp
+
     /*
     =============================================================================================================================
         CHECK SAMPLESHEET

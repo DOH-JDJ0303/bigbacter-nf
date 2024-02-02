@@ -69,11 +69,9 @@ process SNIPPY_CORE {
     val timestamp
 
     output:
-    tuple val(taxa), val(cluster), path("${prefix}.snippy.stats"),                              emit: stats
-    tuple val(taxa), val(cluster), path("${prefix}.aln"), path("${prefix}-constant-sites.txt"), emit: aln
-    tuple val(taxa), val(cluster), path("${prefix}.full.aln"),                                  emit: full_aln
-    tuple val(taxa), val(cluster), path("${prefix}.clean.aln"),                            emit: clean_aln
-    path 'versions.yml',                                                                        emit: versions
+    tuple val(taxa), val(cluster), path("${prefix}.snippy.stats"),                                                           emit: stats
+    tuple val(taxa), val(cluster), path("${prefix}.aln"), path("${prefix}.clean.aln"), path("${prefix}-constant-sites.txt"), emit: aln
+    path 'versions.yml',                                                                                                     emit: versions
 
     when:
     task.ext.when == null || task.ext.when
