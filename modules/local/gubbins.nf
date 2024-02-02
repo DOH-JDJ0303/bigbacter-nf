@@ -1,6 +1,7 @@
 process GUBBINS {
     tag "${taxa}-${cluster}"
     label 'process_medium'
+    errorStrategy 'ignore'
 
     conda "bioconda::gubbins=3.3.1"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
