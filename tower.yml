@@ -7,13 +7,13 @@ reports:
     display: "PopPUNK files"
   "*/*/*/*/figures/*":
     display: "Figures"
-  "*/*/*/*/aln/*":
+  "*/*/*/*/alns/*":
     display: "Genome alignment files"
   "*/*/*/*/snippy/*":
     display: "Compressed Snippy files for each isolate"
   "*/*/*/*/trees/*":
     display: "Phylogenetic trees"
-  "*/*/*/*/dist/*":
+  "*/*/*/*/dists/*":
     display: "Genome distance metrics"
   "*/*/*/*/stats/*":
     display: "Genome statistics"
