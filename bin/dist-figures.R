@@ -133,9 +133,9 @@ p_mat <- ggplot(df, aes(x=ID1, y=ID2, fill=dist))+
   scale_fill_gradient(low = "#009E73", high = "white")+
   labs(fill=paste(dist_lab,"Distance"))
 # determine matrix dimensions
-if(n_iso > 10){
-  wdth <- 0.45*n_iso
-  hght <- 0.4*n_iso
+if(n_iso > 16){
+  wdth <- 0.6*n_iso
+  hght <- 0.5*n_iso
 }else{
    wdth <- 10
    hght <- 8.5
