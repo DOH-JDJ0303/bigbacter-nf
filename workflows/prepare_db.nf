@@ -57,6 +57,8 @@ workflow PREPARE_DB_WF {
 
     ch_versions = Channel.empty()
 
+    println("${workflow.name}")
+
     //
     // SUBWORKFLOW: Read in samplesheet, validate and stage input files
     //
