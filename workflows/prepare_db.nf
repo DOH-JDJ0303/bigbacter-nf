@@ -32,7 +32,6 @@ if (params.db) { ch_input = file(params.db) } else { exit 1, 'BigBacter database
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
-include { DBSHEET_CHECK  } from '../modules/local/dbsheet_check'
 include { PREPARE_DB_MOD } from '../modules/local/prepare-db'
 
 /*
@@ -58,10 +57,9 @@ workflow PREPARE_DB_WF {
 
     ch_versions = Channel.empty()
 
-    // MODULE: Check database sheet - this doesn't actually do anything except stage the file for Tower usage
-    DBSHEET_CHECK(file(params.input, checkIfExists: true))
-        .out
-        .csv
+    // load manifest file
+    Channel
+        .fromPath(file(params.input, checkIfExists: true))
         .splitCsv(header: true)
         .map { tuple(it.taxa.replaceAll(/ /, "_"), it.pp_db) }
         .set { manifest }
