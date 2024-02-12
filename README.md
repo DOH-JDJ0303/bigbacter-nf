@@ -17,7 +17,7 @@ BigBacter was originally written by Jared Johnson for the Washington State Depar
 ```
 nextflow run DOH-JDJ0303/bigbacter-nf \
     -r main \
-    -profile singularity,all_db \
+    -profile singularity,all_dbs \
     -entry PREPARE_DB \
     --db $PWD/db \
     --max_cpus 4 \
