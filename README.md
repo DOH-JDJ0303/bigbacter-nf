@@ -41,3 +41,16 @@ nextflow run DOH-JDJ0303/bigbacter-nf \
     --max_cpus 4 \
     --max_memory 8.GB
 ```
+### 4. Add the new samples to your database (Performed each time:
+```
+nextflow run DOH-JDJ0303/bigbacter-nf \
+    -r main \
+    -profile singularity \
+    --input $PWD/samplesheet.csv
+    --db $PWD/db
+    --outdir $PWD/results
+    --max_cpus 4 \
+    --max_memory 8.GB \
+    --push true \
+    -resume
+```
