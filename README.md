@@ -1,3 +1,4 @@
+# BigBacter
 BigBacter is a pipeline aimed at simplifying bacterial genomic surviellance.
 This is accomplished by:
 1) pre-clustering isolates into closely related subtypes prior to phylogenetic analysis
@@ -10,3 +11,33 @@ This is accomplished by:
 Please see the [wiki](https://github.com/DOH-JDJ0303/bigbacter-nf/wiki) for more information.
 
 BigBacter was originally written by Jared Johnson for the Washington State Department of Health.
+
+## Quick Start
+### 1. Configure pre-made PopPUNK databases (Performed once):
+```
+nextflow run DOH-JDJ0303/bigbacter-nf \
+    -r main \
+    -profile singularity,all_db \
+    -entry PREPARE_DB \
+    --db $PWD/db \
+    --max_cpus 4 \
+    --max_memory 8.GB
+```
+### 2. Prepare your samplesheet (Performed each time):
+```csv
+sample,taxa,assembly,fastq_1,fastq_2
+sample1,Acinetobacter_baumannii,sample1.fasta,sample1_R1.fastq.gz,sample1_R2.fastq.gz
+sample2,Escherichia_coli,sample2.fasta,sample2_R1.fastq.gz,sample2_R2.fastq.gz
+sample3,Staphylococcus_aureus,sample3.fasta,sample3_R1.fastq.gz,sample3_R2.fastq.gz
+```
+### 3. Running BigBacter (Performed each time):
+```
+nextflow run DOH-JDJ0303/bigbacter-nf \
+    -r main \
+    -profile singularity \
+    --input $PWD/samplesheet.csv
+    --db $PWD/db
+    --outdir $PWD/results
+    --max_cpus 4 \
+    --max_memory 8.GB
+```
