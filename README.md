@@ -36,8 +36,8 @@ nextflow run DOH-JDJ0303/bigbacter-nf \
     -r main \
     -profile singularity \
     --input $PWD/samplesheet.csv
-    --db $PWD/db
-    --outdir $PWD/results
+    --db $PWD/db \
+    --outdir $PWD/results \
     --max_cpus 4 \
     --max_memory 8.GB
 ```
@@ -47,8 +47,8 @@ nextflow run DOH-JDJ0303/bigbacter-nf \
     -r main \
     -profile singularity \
     --input $PWD/samplesheet.csv
-    --db $PWD/db
-    --outdir $PWD/results
+    --db $PWD/db \
+    --outdir $PWD/results \
     --max_cpus 4 \
     --max_memory 8.GB \
     --push true \
