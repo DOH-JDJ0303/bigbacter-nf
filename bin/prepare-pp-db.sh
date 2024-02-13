@@ -26,17 +26,18 @@ db="current_db/*"
 rename_file () {
     old_db=${1%/}
     pattern=$2
-    ext=$3
+    exclude=$3
     new_db=$4
     optional=$5
 
-    file=$(ls ${old_db}/${pattern})
+    file=$(ls ${old_db}/*${pattern} | grep -v "${exclude}")
+
     # check if the file is empty, otherwise copy
     if [[ -z ${file} ]]
     then
         if [[ "${optional}" == "false" ]]
         then
-            echo "Error: No file with pattern ${pattern} found in the current database" && exit 1
+            echo "Error: No file with pattern ${pattern} found in the current database. See https://poppunk.readthedocs.io/en/latest/model_distribution.html for a list of required files." && exit 1
         else
             echo "Optional file with pattern ${pattern} not found."
         fi
@@ -47,7 +48,7 @@ rename_file () {
             echo -e "\nMaking new database directory: ${new_db}/"
             mkdir ${new_db}
         fi
-        new_file=${new_db}/${new_db}${ext}
+        new_file=${new_db}/${new_db}${pattern}
         echo "Renaming ${file} to ${new_file}"
         mv ${file} ${new_file}
     fi
@@ -59,16 +60,16 @@ new_name='0000000000'
 
 # move and format files - https://poppunk.readthedocs.io/en/latest/model_distribution.html
 # Optional files
-rename_file ${db} '*.refs' '.refs' ${new_name} "true"
+rename_file ${db} '.refs' '' ${new_name} "true"
 
 ## Required files
-rename_file ${db} '*[_unword]_clusters.csv' '_clusters.csv' ${new_name} "false"
-rename_file ${db} '*[.refs].h5' '.h5' ${new_name} "false"
-rename_file ${db} '*_fit.npz' '_fit.npz' ${new_name} "false"
-rename_file ${db} '*_fit.pkl' '_fit.pkl' ${new_name} "false"
-rename_file ${db} '*[.refs].dists.npy' '.dists.npy' ${new_name} "false"
-rename_file ${db} '*[.refs].dists.pkl' '.dists.pkl' ${new_name} "false"
-rename_file ${db} '*[.refs]_graph.gt' '_graph.gt' ${new_name} "false"
+rename_file ${db} '_clusters.csv' 'unword' ${new_name} "false"
+rename_file ${db} '.h5' '\.refs\.' ${new_name} "false"
+rename_file ${db} '_fit.npz' ' ' ${new_name} "false"
+rename_file ${db} '_fit.pkl' ' ' ${new_name} "false"
+rename_file ${db} '.dists.npy' '\.refs\.' ${new_name} "false"
+rename_file ${db} '.dists.pkl' '\.refs\.' ${new_name} "false"
+rename_file ${db} '_graph.gt' '\.refs\.' ${new_name} "false"
 
 # compress the new directory
 echo -e "\nCompressing the new database:"
