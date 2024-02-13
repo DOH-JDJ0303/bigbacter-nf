@@ -58,44 +58,17 @@ rename_file () {
 new_name='0000000000'
 
 # move and format files - https://poppunk.readthedocs.io/en/latest/model_distribution.html
-## check for reference and full dataset files
-if [ ! -f ${db}/*refs.h5 ] && [ ! -f ${db}/*.h5 ]
-then
-    echo "Error: It appears you are missing required files in your PopPUNK database."
-    exit 1
-fi
+# Optional files
+rename_file ${db} '*.refs' '.refs' ${new_name} "true"
 
-## Always required
-rename_file ${db} '*[^_unword]_clusters.csv' '_clusters.csv' ${new_name} "false"
-
-## Reference files
-if [ -f ${db}/*refs.h5 ]
-then
-    echo -e "\nReference dataset detected.\n"
-    rename_file ${db} '*refs.h5' '_refs.h5' ${new_name} "false"
-    rename_file ${db} '*refs.dists.pkl' '_refs.dists.pkl' ${new_name} "false"
-    rename_file ${db} '*refs.dists.npy' '_refs.dists.npy' ${new_name} "false"
-    rename_file ${db} '*refs_fit.pkl' '_refs_fit.pkl' ${new_name} "false"
-    rename_file ${db} '*refs_fit.npz' '_refs_fit.npz' ${new_name} "false"
-    rename_file ${db} '*.refs' '.refs' ${new_name} "false"
-    rename_file ${db} '*refs_graph.gt' '.refs_graph.gt' ${new_name} "false"
-else
-    echo -e "\nReference dataset not detected.\n"
-fi
-
-## Full dataset
-if [ -f ${db}/*.h5 ]
-then
-    echo -e "\nFull dataset detected.\n"
-    rename_file ${db} '*.h5' '.h5' ${new_name} "false"
-    rename_file ${db} '*.dists.pkl' '.dist.pkl' ${new_name} "false"
-    rename_file ${db} '*.dists.npy' '.dist.npy' ${new_name} "false"
-    rename_file ${db} '*_fit.pkl' '_fit.pkl' ${new_name} "false"
-    rename_file ${db} '*_fit.npz' '_fit.npz' ${new_name} "false"
-    rename_file ${db} '*_graph.gt' '_graph.gt' ${new_name} "false"
-else
-    echo -e "\nFull dataset not detected.\n"
-fi
+## Required files
+rename_file ${db} '*[_unword]_clusters.csv' '_clusters.csv' ${new_name} "false"
+rename_file ${db} '*[.refs].h5' '.h5' ${new_name} "false"
+rename_file ${db} '*_fit.npz' '_fit.npz' ${new_name} "false"
+rename_file ${db} '*_fit.pkl' '_fit.pkl' ${new_name} "false"
+rename_file ${db} '*[.refs].dists.npy' '.dists.npy' ${new_name} "false"
+rename_file ${db} '*[.refs].dists.pkl' '.dists.pkl' ${new_name} "false"
+rename_file ${db} '*[.refs]_graph.gt' '_graph.gt' ${new_name} "false"
 
 # compress the new directory
 echo -e "\nCompressing the new database:"
