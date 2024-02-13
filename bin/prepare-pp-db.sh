@@ -25,19 +25,20 @@ db="current_db/*"
 # function for renaming files
 rename_file () {
     old_db=${1%/}
-    ext=$2
-    new_db=$3
-    optional=$4
+    pattern=$2
+    ext=$3
+    new_db=$4
+    optional=$5
 
-    file=$(ls ${old_db}/*${ext} | head -n 1)
+    file=$(ls ${old_db}/${pattern})
     # check if the file is empty, otherwise copy
     if [[ -z ${file} ]]
     then
         if [[ "${optional}" == "false" ]]
         then
-            echo "Error: No file with extension ${ext} found in the current database" && exit 1
+            echo "Error: No file with pattern ${pattern} found in the current database" && exit 1
         else
-            echo "Optional file with extension ${ext} not found."
+            echo "Optional file with pattern ${pattern} not found."
         fi
     else
         # check if the new database directory 
@@ -65,27 +66,35 @@ then
 fi
 
 ## Always required
-rename_file ${db} '_clusters.csv' ${new_name} "false"
+rename_file ${db} '*[^_unword]_clusters.csv' '_clusters.csv' ${new_name} "false"
 
 ## Reference files
-if [ -f ${db}/*.refs.h5 ]
+if [ -f ${db}/*refs.h5 ]
 then
-    rename_file ${db} 'refs.h5' ${new_name} "false"
-    rename_file ${db} 'refs.dists.pkl' ${new_name} "false"
-    rename_file ${db} 'refs.dists.npy' ${new_name} "false"
-    rename_file ${db} 'refs' ${new_name} "false"
-    rename_file ${db} 'refs_graph.gt' ${new_name} "false"
+    echo -e "\nReference dataset detected.\n"
+    rename_file ${db} '*refs.h5' '_refs.h5' ${new_name} "false"
+    rename_file ${db} '*refs.dists.pkl' '_refs.dists.pkl' ${new_name} "false"
+    rename_file ${db} '*refs.dists.npy' '_refs.dists.npy' ${new_name} "false"
+    rename_file ${db} '*refs_fit.pkl' '_refs_fit.pkl' ${new_name} "false"
+    rename_file ${db} '*refs_fit.npz' '_refs_fit.npz' ${new_name} "false"
+    rename_file ${db} '*.refs' '.refs' ${new_name} "false"
+    rename_file ${db} '*refs_graph.gt' '.refs_graph.gt' ${new_name} "false"
+else
+    echo -e "\nReference dataset not detected.\n"
 fi
 
 ## Full dataset
 if [ -f ${db}/*.h5 ]
 then
-    rename_file ${db} '.h5' ${new_name} "false"
-    rename_file ${db} '.dists.pkl' ${new_name} "false"
-    rename_file ${db} '.dists.npy' ${new_name} "false"
-    rename_file ${db} '_fit.pkl' ${new_name} "false"
-    rename_file ${db} '_fit.npz' ${new_name} "false"
-    rename_file ${db} '_graph.gt' ${new_name} "false"
+    echo -e "\nFull dataset detected.\n"
+    rename_file ${db} '*.h5' '.h5' ${new_name} "false"
+    rename_file ${db} '*.dists.pkl' '.dist.pkl' ${new_name} "false"
+    rename_file ${db} '*.dists.npy' '.dist.npy' ${new_name} "false"
+    rename_file ${db} '*_fit.pkl' '_fit.pkl' ${new_name} "false"
+    rename_file ${db} '*_fit.npz' '_fit.npz' ${new_name} "false"
+    rename_file ${db} '*_graph.gt' '_graph.gt' ${new_name} "false"
+else
+    echo -e "\nFull dataset not detected.\n"
 fi
 
 # compress the new directory
