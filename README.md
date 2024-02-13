@@ -14,6 +14,7 @@ BigBacter was originally written by Jared Johnson for the Washington State Depar
 
 ## Quick Start
 ### 1. Configure pre-made PopPUNK databases (Performed once):
+> :warning: This downloads several large files and can take hours to complete. See the wiki page for how to prepare individual PopPUNK databases. 
 ```
 nextflow run DOH-JDJ0303/bigbacter-nf \
     -r main \
