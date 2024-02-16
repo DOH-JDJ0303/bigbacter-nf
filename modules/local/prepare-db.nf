@@ -12,7 +12,7 @@ process PREPARE_DB_MOD {
     script:
     """
     # prepare the PopPUNK database
-    prepare-pp-db.sh ${pp_db} 0000000000
+    prepare-pp-db.sh ${pp_db}
     """
 }
 

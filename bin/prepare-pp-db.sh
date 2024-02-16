@@ -51,7 +51,7 @@ rename_file () {
             echo "File not found but thats ok because it is optional."
             status="fail"
         else
-            echo "\nError: No file with pattern ${pattern} found in the current database. See https://poppunk.readthedocs.io/en/latest/model_distribution.html for a list of required files." && exit 1
+            echo "Error: No file with pattern ${pattern} found in the current database. See https://poppunk.readthedocs.io/en/latest/model_distribution.html for a list of required files." && exit 1
         fi
     fi
 
