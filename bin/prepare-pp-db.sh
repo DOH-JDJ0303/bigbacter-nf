@@ -1,7 +1,6 @@
 #!/bin/bash
 
 db=${1%/}
-out=${2%/}
 
 # make directory for current database
 mkdir current_db
@@ -26,22 +25,39 @@ db="current_db/*"
 rename_file () {
     old_db=${1%/}
     pattern=$2
-    exclude=$3
+    alt=$3
     new_db=$4
     optional=$5
 
-    file=$(ls ${old_db}/*${pattern} | grep -v "${exclude}")
-
-    # check if the file is empty, otherwise copy
-    if [[ -z ${file} ]]
+    # check full and ref version file paths
+    echo -e "\nSearching for file with pattern '${pattern}':"
+    main_file=$(ls ${old_db}/*${pattern} | grep -v "${alt}" 2> /dev/null)
+    alt_file=$(ls ${old_db}/*${pattern} | grep "${alt}" 2> /dev/null)
+    
+    # Check if either the full version or ref version of the file exists and preferentially use the full version
+    if [[ ! -z ${main_file} ]]
     then
-        if [[ "${optional}" == "false" ]]
-        then
-            echo "Error: No file with pattern ${pattern} found in the current database. See https://poppunk.readthedocs.io/en/latest/model_distribution.html for a list of required files." && exit 1
-        else
-            echo "Optional file with pattern ${pattern} not found."
-        fi
+        echo "File found!"
+        file=${main_file}
+        status="ok"
+    elif [[ ! -z ${alt_file} ]]
+    then
+        echo "Alt file found!"
+        file=${alt_file}
+        status="ok"
     else
+        if [ "${optional}" == "true" ]
+        then
+            echo "File not found but thats ok because it is optional."
+            status="fail"
+        else
+            echo "\nError: No file with pattern ${pattern} found in the current database. See https://poppunk.readthedocs.io/en/latest/model_distribution.html for a list of required files." && exit 1
+        fi
+    fi
+
+    # copy file if it was found and is not optional
+    if [ ${status} == "ok" ]
+    then
         # check if the new database directory 
         if [[ ! -d ${new_db} ]]
         then
@@ -52,7 +68,6 @@ rename_file () {
         echo "Renaming ${file} to ${new_file}"
         mv ${file} ${new_file}
     fi
-
 }
 
 # reformat database for BigBacter
@@ -60,7 +75,7 @@ new_name='0000000000'
 
 # move and format files - https://poppunk.readthedocs.io/en/latest/model_distribution.html
 # Optional files
-rename_file ${db} '.refs' '' ${new_name} "true"
+rename_file ${db} '.refs' ' ' ${new_name} "true"
 
 ## Required files
 rename_file ${db} '_clusters.csv' 'unword' ${new_name} "false"
@@ -73,4 +88,4 @@ rename_file ${db} '_graph.gt' '\.refs\.' ${new_name} "false"
 
 # compress the new directory
 echo -e "\nCompressing the new database:"
-tar -czvf ${out}.tar.gz ${out}/
+tar -czvf ${new_name}.tar.gz ${new_name}/
