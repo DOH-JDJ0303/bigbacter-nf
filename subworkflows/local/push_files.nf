@@ -11,13 +11,24 @@ workflow PUSH_FILES {
     new_taxa_files    // channel: [taxa, new_pp_db]
 
     main:
-    // Publish cluster-specific files
+    /*
+    =============================================================================================================================
+        TAXA FILES
+    =============================================================================================================================
+    */
+    // MODULE: Publish taxa-specific files
+    PUSH_TAXA_FILES(
+        new_taxa_files
+    )
+
+    /*
+    =============================================================================================================================
+        CLUSTER FILES
+    =============================================================================================================================
+    */
+    // MODULE: Publish cluster-specific files
     PUSH_CLUSTER_FILES(
         new_cluster_files
     )
 
-    // Publish taxa-specific files
-    PUSH_TAXA_FILES(
-        new_taxa_files
-    )
 }

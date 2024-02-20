@@ -80,6 +80,12 @@ workflow CLUSTER {
         .map {taxa, sample, assembly -> [taxa, sample, assembly, get_ppdb(taxa)]}
         .set { pp_grouped }
 
+    // Make sure current run is not superceded by run in BigBacter database - this should avoid issues with resuming an old run.
+    pp_grouped
+        .combine(timestamp)
+        .map{ taxa, sample, assembly, pp_db, timestamp -> [ taxa, file(pp_db).getBaseName().replace('.tar', ''), timestamp ] }
+        .map{ taxa, current_db, timestamp -> current_db > timestamp ? error(message = "Error: The timestamp of the current run ("+timestamp+") is older than the timestamp of the most recent run ("+current_db+") in your "+taxa.replace('_',' ')+" database. This has likely occured because you are trying to resume an old BigBacter run. Try running this command again without the '-resume' parameter.") : "Nothing to see here!"}
+
     // MODULE: Assign PopPUNK clusters
     POPPUNK_ASSIGN (
         pp_grouped,
