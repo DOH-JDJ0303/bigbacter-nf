@@ -45,6 +45,8 @@ include { PUSH_FILES       } from '../subworkflows/local/push_files'
 
 include { NCBI_DATASETS    } from '../modules/local/ncbi-datasets'
 include { FASTERQDUMP      } from '../modules/local/fasterqdump'
+include { FASTP            } from '../modules/local/fastp'
+include { SEQTK_SEQ        } from '../modules/local/seqtk_seq'
 include { SUMMARY_TABLE    } from '../modules/local/summary-tables'
 include { COMBINED_SUMMARY } from '../modules/local/combined-summary'
 
@@ -151,6 +153,33 @@ workflow BIGBACTER {
         .collectFile(name: "samplesheet-collected.csv", sort: 'index', newLine: true)
         .set{ manifest_path }
 
+     /*
+    =============================================================================================================================
+        QUALITY FILTER INPUTS
+    =============================================================================================================================
+    */
+
+    // MODULE: Run seqtk seq on assembly
+    SEQTK_SEQ(
+        manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, assembly ] },
+        timestamp
+    )
+    ch_versions = ch_versions.mix(SEQTK_SEQ.out.versions)
+
+    // MODULE: Run fastp on reads
+    FASTP(
+        manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, fastq_1, fastq_2 ] },
+        timestamp
+    )
+    ch_versions = ch_versions.mix(FASTP.out.versions)
+
+    // Add quality filter datasets back to manifest
+    manifest
+        .map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa ] }
+        .join(SEQTK_SEQ.out.assembly, by: 0)
+        .join(FASTP.out.reads, by: 0)
+        .set{ manifest }
+    
     /*
     =============================================================================================================================
         ASSIGN CLUSTERS
