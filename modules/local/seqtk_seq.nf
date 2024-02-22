@@ -2,7 +2,7 @@ process SEQTK_SEQ {
     tag "${sample}"
     label 'process_low'
 
-    conda (params.enable_conda ? "bioconda::seqtk=1.3" : null)
+    conda "bioconda::seqtk=1.3"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/seqtk:1.3--h5bf99c6_3' :
         'quay.io/biocontainers/seqtk:1.3--h5bf99c6_3' }"
@@ -24,6 +24,7 @@ process SEQTK_SEQ {
     """
     seqtk \\
         seq \\
+        -L ${params.min_contig_len} \\
         $args \\
         $assembly | \\
         gzip -c > ${prefix}.fa.gz

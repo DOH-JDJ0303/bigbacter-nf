@@ -41,20 +41,46 @@
                     "type": "string",
                     "description": "Path to the BigBacter database.",
                     "fa_icon": "fas fa-folder-open"
-                }
-            }
-        },
-        "other_options": {
-            "title": "Other options",
-            "type": "object",
-            "description": "",
-            "default": "",
-            "properties": {
+                },
                 "push": {
                     "type": "boolean",
                     "fa_icon": "fas fa-file-export",
                     "description": "Push files to database (Default: false). It is recommended that you check all outputs before pushing files to your BigBacter database. If results are deemed acceptable, the run can be resumed with this option set to 'true'. This avoids adding abnormal samples that may impact future analyses."
+                }
+            }
+        },
+        "qc_reads_assembly": {
+            "title": "QC: Reads & Assembly",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
+                "read_qc": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-chart-pie",
+                    "description": "Whether read QC should be performed.",
+                    "default": true
                 },
+                "assembly_qc": {
+                    "type": "boolean",
+                    "default": true,
+                    "fa_icon": "fas fa-chart-pie",
+                    "description": "Whether assembly QC should be performed."
+                },
+                "min_contig_len": {
+                    "type": "integer",
+                    "default": 300,
+                    "fa_icon": "fas fa-chart-pie",
+                    "description": "Minimum contig length retained in assembly."
+                }
+            }
+        },
+        "qc_variant_calling": {
+            "title": "QC: Variant Calling",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
                 "min_genfrac": {
                     "type": "integer",
                     "default": 90,
@@ -78,19 +104,15 @@
                     "default": 100,
                     "fa_icon": "fas fa-chart-pie",
                     "description": "Maximum read depth per sample. This is used by Snippy to randomly subsample reads."
-                },
-                "strong_link_cutoff": {
-                    "type": "integer",
-                    "default": 10,
-                    "description": "SNP distance threshold used to classify strong genomic linkages (default: 10)",
-                    "fa_icon": "fas fa-link"
-                },
-                "inter_link_cutoff": {
-                    "type": "integer",
-                    "default": 50,
-                    "description": "SNP distance threshold used to classify intermediate genomic linkages (default: 50)",
-                    "fa_icon": "fas fa-link"
-                },
+                }
+            }
+        },
+        "tree_options": {
+            "title": "Tree options",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
                 "max_ml": {
                     "type": "integer",
                     "default": 100,
@@ -102,7 +124,35 @@
                     "default": 2,
                     "fa_icon": "fas fa-tree",
                     "description": "Minimum number of samples in a cluster for a tree to be generated (sans reference). Must be greater than 2."
+                }
+            }
+        },
+        "reporting_options": {
+            "title": "Reporting options",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
+                "strong_link_cutoff": {
+                    "type": "integer",
+                    "default": 10,
+                    "description": "SNP distance threshold used to classify strong genomic linkages (default: 10)",
+                    "fa_icon": "fas fa-link"
                 },
+                "inter_link_cutoff": {
+                    "type": "integer",
+                    "default": 50,
+                    "description": "SNP distance threshold used to classify intermediate genomic linkages (default: 50)",
+                    "fa_icon": "fas fa-link"
+                }
+            }
+        },
+        "other_options_caution": {
+            "title": "Other options (caution)",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
                 "resolve_merged": {
                     "type": "boolean",
                     "fa_icon": "fas fa-object-group",
@@ -327,7 +377,19 @@
             "$ref": "#/definitions/input_output_options"
         },
         {
-            "$ref": "#/definitions/other_options"
+            "$ref": "#/definitions/qc_reads_assembly"
+        },
+        {
+            "$ref": "#/definitions/qc_variant_calling"
+        },
+        {
+            "$ref": "#/definitions/tree_options"
+        },
+        {
+            "$ref": "#/definitions/reporting_options"
+        },
+        {
+            "$ref": "#/definitions/other_options_caution"
         },
         {
             "$ref": "#/definitions/institutional_config_options"

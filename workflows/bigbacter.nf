@@ -159,27 +159,38 @@ workflow BIGBACTER {
     =============================================================================================================================
     */
 
-    // MODULE: Run seqtk seq on assembly
-    SEQTK_SEQ(
-        manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, assembly ] },
-        timestamp
-    )
-    ch_versions = ch_versions.mix(SEQTK_SEQ.out.versions)
+    if(params.assembly_qc){
+        // MODULE: Run seqtk seq on assembly
+        SEQTK_SEQ(
+            manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, assembly ] },
+            timestamp
+        )
+        ch_versions = ch_versions.mix(SEQTK_SEQ.out.versions)
+
+        // Add quality filter datasets back to manifest
+        manifest
+            .map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa, fastq_1, fastq_2 ] }
+            .join(SEQTK_SEQ.out.assembly, by: 0)
+            .map{ sample, taxa, fastq_1, fastq_2, assembly -> [ sample, taxa, assembly, fastq_1, fastq_2 ] }
+            .set{ manifest }
+    }
+    
 
     // MODULE: Run fastp on reads
-    FASTP(
-        manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, fastq_1, fastq_2 ] },
-        timestamp
-    )
-    ch_versions = ch_versions.mix(FASTP.out.versions)
+    if (params.read_qc){
+        FASTP(
+            manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, fastq_1, fastq_2 ] },
+            timestamp
+        )
+        ch_versions = ch_versions.mix(FASTP.out.versions)
+        
+        // Add quality filter datasets back to manifest
+        manifest
+            .map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa, assembly ] }
+            .join(FASTP.out.reads, by: 0)
+            .set{ manifest }
+    }
 
-    // Add quality filter datasets back to manifest
-    manifest
-        .map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa ] }
-        .join(SEQTK_SEQ.out.assembly, by: 0)
-        .join(FASTP.out.reads, by: 0)
-        .set{ manifest }
-    
     /*
     =============================================================================================================================
         ASSIGN CLUSTERS
