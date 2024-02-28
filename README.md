@@ -13,8 +13,8 @@ Please see the [wiki](https://github.com/DOH-JDJ0303/bigbacter-nf/wiki) for more
 BigBacter was originally written by Jared Johnson for the Washington State Department of Health.
 
 ## Quick Start
-### 1. Configure pre-made PopPUNK databases (Performed once):
-> :warning: This downloads several large files (~20 GB total) and takes ~90 minutes to complete (tested on Seqera Cloud). See the wiki page for how to prepare individual PopPUNK databases. 
+### 1. Configure all pre-made PopPUNK databases (Performed once):
+> :warning: This downloads PopPUNK databases for 23 bacterial species (~21 GB total; ~2 hours using AWS Batch). See the wiki page for how to prepare individual PopPUNK databases. 
 ```
 nextflow run DOH-JDJ0303/bigbacter-nf \
     -r main \
