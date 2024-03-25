@@ -11,12 +11,16 @@ WorkflowBigbacter.initialise(params, log)
 
 // TODO nf-core: Add all file path parameters for the pipeline to the list below
 // Check input path parameters to see if they exist
-def checkPathParamList = [ params.input, params.db, params.multiqc_config ]
+def checkPathParamList = [ params.input ]
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
 // Check mandatory parameters
 if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
-if (params.db) { ch_input = file(params.db) } else { exit 1, 'BigBacter database not specified!' }
+if (params.db) { ch_db = file(params.db) } else { exit 1, 'BigBacter database not specified!' }
+
+// Create db path if it does not exist
+ch_db.exists() ?: ch_db.mkdirs()
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     CONFIG FILES
