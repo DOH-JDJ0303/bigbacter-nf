@@ -25,6 +25,7 @@ nextflow run DOH-JDJ0303/bigbacter-nf \
     --max_memory 8.GB
 ```
 ### 2. Prepare your samplesheet (Performed each time):
+> Note: Nextflow requires the use of absolute file paths in samplesheets.
 ```csv
 sample,taxa,assembly,fastq_1,fastq_2
 sample1,Acinetobacter_baumannii,sample1.fasta,sample1_R1.fastq.gz,sample1_R2.fastq.gz
@@ -43,6 +44,7 @@ nextflow run DOH-JDJ0303/bigbacter-nf \
     --max_memory 8.GB
 ```
 ### 4. Add the new samples to your database (Performed each time):
+> Note: This is the same command as in step 3 but with `-resume` and `--push true`. This will resume the run from step 3 and push the existing files to the BigBacter database. This allows you to check your results before pushing files to your database.
 ```
 nextflow run DOH-JDJ0303/bigbacter-nf \
     -r main \
