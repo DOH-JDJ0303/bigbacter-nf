@@ -1,6 +1,6 @@
 process GUBBINS {
     tag "${taxa}-${cluster}"
-    label 'process_medium'
+    label 'process_high'
     errorStrategy 'ignore'
 
     conda "bioconda::gubbins=3.3.1"
