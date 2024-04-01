@@ -1,7 +1,8 @@
 process GUBBINS {
     tag "${taxa}-${cluster}"
     label 'process_high'
-    errorStrategy 'ignore'
+    errorStrategy { task.exitStatus in [143, 137] ? 'retry' : 'ignore' } 
+    maxRetries 1
 
     conda "bioconda::gubbins=3.3.1"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
