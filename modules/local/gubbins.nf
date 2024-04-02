@@ -38,7 +38,7 @@ process GUBBINS {
         then
             method_model="--tree-builder rapidnj"
         else
-            method_model="--tree-builder iqtree --custom-model GTR+I+G"
+            method_model="--model-fitter iqtree --tree-builder iqtree --custom-model GTR+I+G"
         fi
     fi
 
