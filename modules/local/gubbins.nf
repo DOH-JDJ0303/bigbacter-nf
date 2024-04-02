@@ -28,25 +28,13 @@ process GUBBINS {
     script:
     def args = task.ext.args ?: ''
     prefix   = "${timestamp}-${taxa}-${cluster}"
+    method_model = count > params.max_ml ? '--tree-builder rapidnj' : '--model-fitter iqtree --tree-builder iqtree --custom-model GTR+I+G' 
     """
-    # determine model and tree building method
-    if [ "${args}" == '' ]
-    then
-        method_model="${args}"
-    else
-        if [[ !{count} > ${params.max_ml} ]]
-        then
-            method_model="--tree-builder rapidnj"
-        else
-            method_model="--model-fitter iqtree --tree-builder iqtree --custom-model GTR+I+G"
-        fi
-    fi
-
     # Run Gubbins
     run_gubbins.py \\
         --threads $task.cpus \\
         --prefix ${prefix} \\
-        \${method_model} \\
+        ${method_model} \\
         ${aln}
 
     # rename stats for easy summary
