@@ -33,6 +33,7 @@ sample2,Escherichia_coli,sample2.fasta,sample2_R1.fastq.gz,sample2_R2.fastq.gz
 sample3,Staphylococcus_aureus,sample3.fasta,sample3_R1.fastq.gz,sample3_R2.fastq.gz
 ```
 ### 3. Running BigBacter (Performed each time):
+> Note: Nextflow versions ≥ 23.10 require that you run `export NXF_SINGULARITY_HOME_MOUNT=true` when running with `-profile singularity` or Gubbins will fail ([issue 7](https://github.com/DOH-JDJ0303/bigbacter-nf/issues/7)).
 ```
 nextflow run DOH-JDJ0303/bigbacter-nf \
     -r main \
