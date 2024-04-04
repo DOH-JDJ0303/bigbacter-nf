@@ -69,6 +69,99 @@ include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoft
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
+// get list of isolates in each cluster for a taxa
+def db_taxa_clusters ( taxa , timestamp ) {
+    // determine path to taxa database
+    clusters_path = file(params.db).resolve(taxa).resolve("clusters")
+    // get list of isolates associated with each cluster
+    taxadir = file(params.outdir).resolve(timestamp.toString()).resolve(taxa)
+    taxadir.mkdirs()
+    db_info_file = taxadir.resolve(taxa+"-db-info.txt")
+    db_info_file.delete()
+    clusters = clusters_path.list()
+    for ( cluster in clusters ) {
+        // list isolates
+        isolates = clusters_path.resolve(cluster).resolve("snippy").list()
+        // create list
+        for ( iso in isolates ) {
+            row = taxa+"\t"+cluster+"\t"+iso.replace(".tar.gz", "")+"\n"
+            db_info_file.append(row) 
+        }
+    }
+    return db_info_file
+}
+
+// Function for gathering BigBacter database info
+def db_info ( db_path, outdir_path, timestamp, wait_file ) {
+    // Build output file path
+    ts_str = timestamp.toString()
+    db_info = file(outdir_path).resolve(ts_str).resolve(ts_str+"-db-info.csv")
+    if (db_info.exists()) { db_info.delete() }
+    // Add header
+    db_info.append("Taxon,Cluster,File_Type,File_Name,Size,File_Date,File_Path\n")
+    // Create empty variables for total counts
+    pp_size = 0
+    ref_size = 0
+    snippy_size = 0
+    // Iterate through taxa
+    for ( taxon in file(db_path).list() ) {
+        taxon_path = file(db_path).resolve(taxon)
+        // Iterate through PopPUNK files
+        for ( pp in file(taxon_path).resolve("pp_db").list() ) {
+            // Build file path
+            pp_file = file(taxon_path).resolve("pp_db").resolve(pp)
+            // Total size
+            pp_file_size = pp_file.size()
+            pp_size = pp_size + pp_file_size
+            // File date
+            pp_date = new Date(pp_file.lastModified())
+            // Create row & append
+            pp_row = taxon+",NA,PopPUNK_Database,"+pp+","+pp_file_size+","+pp_date+","+pp_file.toUriString()+"\n" 
+            ! pp_row ?: db_info.append(pp_row)
+        }
+        // Iterate through cluster files
+        for ( cluster in file(taxon_path).resolve("clusters").list() ) {
+            cluster_path = file(taxon_path).resolve("clusters").resolve(cluster)
+            // Reference files
+            for ( ref in file(cluster_path).resolve("ref").list() ) {
+                // Build file path
+                ref_file = file(cluster_path).resolve("ref").resolve(ref)
+                // Total size
+                ref_file_size = ref_file.size()
+                ref_size = ref_size + ref_file_size
+                // File date
+                ref_date = new Date(ref_file.lastModified())
+                // Create row & append
+                ref_row = taxon+","+cluster+",SNP_Reference,"+ref+","+ref_file_size+","+ref_date+","+ref_file.toUriString()+"\n"
+                ! ref_row ?: db_info.append(ref_row)
+            }
+            // Snippy files
+            for ( snippy in file(cluster_path).resolve("snippy").list() ) { 
+                // Build file path
+                snippy_file = file(cluster_path).resolve("snippy").resolve(snippy)
+                // Total size
+                snippy_file_size = snippy_file.size()
+                snippy_size = snippy_size + snippy_file_size
+                // File date
+                snippy_date = new Date(snippy_file.lastModified())
+                // Create row & append
+                snippy_row = taxon+","+cluster+",SNP_Files,"+snippy+","+snippy_file_size+","+snippy_date+","+snippy_file.toUriString()+"\n"
+                ! snippy_row ?: db_info.append(snippy_row)
+            }
+        }
+    }
+    // Get total and convert to GB
+    total_size = pp_size+ref_size+snippy_size
+    total_size = MemoryUnit.of(total_size).toGiga()
+    pp_size = MemoryUnit.of(pp_size).toGiga()
+    ref_size = MemoryUnit.of(ref_size).toGiga()
+    snippy_size = MemoryUnit.of(snippy_size).toGiga()
+    // Print to Screen
+    println "\n===========================\nBigBacter Database Summary:\n===========================\nDatabase Path: "+db_path+"\nPopPUNK Files: "+pp_size+"GB\nReference Files: "+ref_size+"GB\nSNP Files: "+snippy_size+"GB\nTotal: "+total_size+"GB\n"
+    // Return file
+    return db_info
+}
+
 // Info required for completion email and summary
 def multiqc_report = []
 
@@ -280,13 +373,22 @@ workflow BIGBACTER {
         .set{ cluster_files }
     
     // if push is 'true'
+    ch_wait = cluster_files.concat(taxa_files).collect().flatten().last()
     if(params.push){
         // SUBWORKFLOW: Push new BigBacter database
         PUSH_FILES(
             cluster_files,
             taxa_files
         )
+        PUSH_FILES
+            .out
+            .push_files
+            .last()
+            .set{ch_wait}
     }
+
+    // Collect database info - optional
+    if (params.db_info){ timestamp.combine(ch_wait).map{ timestamp, wait_file -> db_info(params.db, params.outdir, timestamp, wait_file) } }
 
     /*
     =============================================================================================================================

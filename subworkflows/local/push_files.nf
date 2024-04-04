@@ -31,4 +31,8 @@ workflow PUSH_FILES {
         new_cluster_files
     )
 
+    emit:
+    push_files = PUSH_TAXA_FILES.out.taxa_files.concat(PUSH_CLUSTER_FILES.out.cluster_files).collect().flatten()
+    
+
 }

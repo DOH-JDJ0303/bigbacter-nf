@@ -7,7 +7,7 @@ process PUSH_CLUSTER_FILES {
 
     output:
     path 'ref.fa.gz'
-    path new_snippy
+    path new_snippy, emit: cluster_files
     
     when:
     task.ext.when == null || task.ext.when
@@ -38,7 +38,7 @@ process PUSH_TAXA_FILES {
     tuple val(taxa), path(new_pp_db)
 
     output:
-    path new_pp_db
+    path new_pp_db, emit: taxa_files
 
     when:
     task.ext.when == null || task.ext.when
