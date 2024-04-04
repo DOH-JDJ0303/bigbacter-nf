@@ -1,6 +1,6 @@
 process GUBBINS {
     tag "${taxa}-${cluster}"
-    label 'process_high'
+    label 'process_medium'
     errorStrategy { task.exitStatus in [143, 137] ? 'retry' : 'ignore' } 
     maxRetries 1
 
@@ -28,13 +28,11 @@ process GUBBINS {
     script:
     def args = task.ext.args ?: ''
     prefix   = "${timestamp}-${taxa}-${cluster}"
-    method_model = count > params.max_ml ? '--tree-builder rapidnj' : '--model-fitter iqtree --tree-builder iqtree --custom-model GTR+I+G' 
     """
     # Run Gubbins
     run_gubbins.py \\
         --threads $task.cpus \\
         --prefix ${prefix} \\
-        ${method_model} \\
         ${aln}
 
     # rename stats for easy summary

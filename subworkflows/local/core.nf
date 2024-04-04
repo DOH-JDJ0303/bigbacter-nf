@@ -129,13 +129,13 @@ workflow CORE {
        /*
     =============================================================================================================================
         IDENTIFY RECOMBINANT REGIONS
-        - use IQTREE or RAPIDNJ depending on '--max_ml'
+        - only ran for clusters smaller than '--max_ml'
         - alignments without SNPs are excluded
     =============================================================================================================================
     */
     // MODULE: Run Gubbins
     GUBBINS(
-        aln_w_metrics.map{ taxa, cluster, core_aln, clean_aln, const_sites, count -> [ taxa, cluster, clean_aln,const_sites, count ] },
+        aln_w_metrics.filter{ taxa, cluster, core_aln, clean_aln, const_sites, count -> count <= params.max_ml }.map{ taxa, cluster, core_aln, clean_aln, const_sites, count -> [ taxa, cluster, clean_aln, const_sites, count ] },
         timestamp
     )
     ch_versions = ch_versions.mix(GUBBINS.out.versions)
