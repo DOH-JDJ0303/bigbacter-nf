@@ -153,6 +153,12 @@
             "description": "",
             "default": "",
             "properties": {
+                "db_info": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Option to gather database information. A file will be saved in the run directory and a summary will be printed to the screen.",
+                    "fa_icon": "fas fa-info-circle"
+                },
                 "resolve_merged": {
                     "type": "boolean",
                     "fa_icon": "fas fa-object-group",
