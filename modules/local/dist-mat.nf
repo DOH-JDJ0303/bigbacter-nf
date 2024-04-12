@@ -2,6 +2,7 @@ process DIST_MAT {
     tag "${taxa}_${cluster}_${input_source}"
     label 'process_low'
     stageInMode 'copy'
+    errorStrategy 'ignore'
 
     input:
     tuple val(taxa), val(cluster), val(input_source), path(dist), path(tree), path(manifest)
