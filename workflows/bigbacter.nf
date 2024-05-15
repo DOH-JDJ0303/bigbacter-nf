@@ -47,6 +47,7 @@ include { NCBI_DATASETS    } from '../modules/local/ncbi-datasets'
 include { FASTERQDUMP      } from '../modules/local/fasterqdump'
 include { FASTP            } from '../modules/local/fastp'
 include { SEQTK_SEQ        } from '../modules/local/seqtk_seq'
+include { MRFIGS           } from '../modules/local/mrfigs'
 include { SUMMARY_TABLE    } from '../modules/local/summary-tables'
 include { COMBINED_SUMMARY } from '../modules/local/combined-summary'
 
@@ -332,11 +333,26 @@ workflow BIGBACTER {
         SUMMARIZE RESULTS
     =============================================================================================================================
     */
-    // Consolidate results for summary
+    // Consolidate results for Microreact
+    CORE
+        .out
+        .meta
+        .join(CORE.out.dist, by: [0,1,2])
+        .join(CORE.out.tree, by: [0,1,2])
+        .combine(ACCESSORY.out.dist.map{ taxa, cluster, source, dist -> [ taxa, cluster, dist] }, by: [0,1])
+        .set{ ch_microreact }
+    // MODULE: Create Microreact figures
+    MRFIGS (
+        ch_microreact,
+        file("$projectDir/assets/microreact.json", checkIfExists: true),
+        timestamp        
+    )
+    
+    // Consolidate results for summarylines
     CORE
         .out
         .dist
-        .map{ taxa, cluster, source, dist, tree -> [ taxa, cluster, dist ] }
+        .map{ taxa, cluster, source, dist -> [ taxa, cluster, dist ] }
         .groupTuple(by: [0,1])
         .join(CORE.out.stats, by: [0,1])
         .set{core_summary}
