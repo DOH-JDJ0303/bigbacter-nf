@@ -243,10 +243,13 @@
   "timelines": {},
   "trees": {
     "tree-1": {
-      "alignLabels": false,
+      "alignLabels": true,
       "blockHeaderFontSize": 13,
       "blockPadding": 0,
-      "blocks": [],
+      "blocks": [
+        "PARTITION",
+        "STATUS"
+      ],
       "blockSize": 14,
       "branchLengthsDigits": 4,
       "controls": true,
