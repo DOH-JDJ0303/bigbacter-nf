@@ -273,7 +273,7 @@ workflow CORE {
     snp_files = snp_files              // channel: [ val(taxa), val(cluster), path(ref), path(new_snippy), path(old_snippy) ]
     tree      = TREE_FIGURE.out.tree   // channel: [ val(taxa), val(cluster), val(source), path(tree) ]
     dist      = DIST_MAT.out.dist_wide // channel: [ val(taxa), val(cluster), val(source), path(dist) ]
-    meta      = DIST_MAT.out.meta      // channel: [ val(taxa), val(cluster), val(source), path(meta) ]
+    meta      = TREE_FIGURE.out.meta      // channel: [ val(taxa), val(cluster), val(source), path(meta) ]
     stats     = all_stats              // channel: [ val(taxa), val(cluster), path(stats) ]
     versions  = ch_versions            // channel: [ versions.yml ]
 }

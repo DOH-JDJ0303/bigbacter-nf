@@ -17,7 +17,6 @@ threshold <- args[7] # 100 or 1
 percent <- args[8] # if dist should be converted to percentage - true or false
 prefix <- args[9] # output prefix
 max_cluster_size <- args[10] # max cluster size for static images to be created
-partition_threshold <- args[11] # SNP threshold to create partitions
 
 #---- OUTPUT NAME ----#
 # base filename
@@ -154,30 +153,6 @@ if (n_iso < as.numeric(max_cluster_size)) {
 
   # plot image
   ggsave(filename = paste0(basename,".jpg"), plot = p_mat, dpi = 300, width = wdth, height = hght, limitsize = F)
-}
-
-#---- CREATE METADATA (FOR PUBLISHING) ----#
-df.meta <- df %>%
-  mutate(ID = ID1,
-         STATUS = "OLD") %>%
-  select(ID, STATUS) %>%
-  unique() %>%
-  mutate(STATUS = case_when(ID %in% new_samples ~ "NEW",
-                          TRUE ~ STATUS)) 
-# create SNP partitions & add to metadata
-if(!(percent == "true" | percent == "True" | percent == "T" | percent == "TRUE")){
-  snp.dist <- df.wide %>%
-    column_to_rownames(var = "null") %>%
-    as.matrix() %>%
-    as.dist()
-  dend <- hclust(snp.dist, method = "complete")
-  df.meta <- cutree(dend, h = as.numeric(partition_threshold)) %>%
-    data.frame() %>%
-    rownames_to_column(var = "ID") %>%
-    rename(PARTITION = 2) %>%
-    left_join(df.meta, by = "ID")
-  # save
-  write.csv(x = df.meta, file = paste0(basename,"-metadata.csv"), quote = F, row.names = F)
 }
 
 #---- WRITE DISTANCE FILES ----#

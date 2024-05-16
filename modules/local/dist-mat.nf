@@ -14,7 +14,6 @@ process DIST_MAT {
 
     output:
     tuple val(taxa), val(cluster), val(input_source), path("*.jpg"),          emit: figure, optional: true
-    tuple val(taxa), val(cluster), val(input_source), path("*-metadata.csv"), emit: meta, optional: true
     tuple val(taxa), val(cluster), val(input_source), path("*-wide.csv"),     emit: dist_wide
     tuple val(taxa), val(cluster), val(input_source), path("*-long.csv"),     emit: dist_long
 
@@ -36,7 +35,6 @@ process DIST_MAT {
         "!{threshold}" \
         "!{percent_bool}" \
         "!{prefix}" \
-        "!{params.max_static}" \
-        "!{params.partition_threshold}"
+        "!{params.max_static}"
     '''
 }
