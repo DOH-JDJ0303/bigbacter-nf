@@ -50,7 +50,7 @@ if(file.exists(gubbins_stats_file)){
 snp_dist_metrics <- function(dist_file, source){
   # Load distance matrix - if the file exists
   if(file.exists(dist_file) & file.size(dist_file) != 0L){
-    dist <- read_tsv(dist_file) %>%
+    dist <- read_csv(dist_file) %>%
       rename(ID = 1) %>%
       pivot_longer(names_to = "ID2", values_to = "snps", cols = 2:ncol(.))
 
