@@ -7,6 +7,8 @@ process GUBBINS {
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/gubbins%3A3.3.1--py39pl5321h3d4b85c_0' :
         'quay.io/biocontainers/gubbins:3.3.1--py310pl5321h83093d7_0' }"
+    containerOptions = "${ workflow.containerEngine == 'docker' || workflow.containerEngine == 'podman' ? '--shm-size 1g' : '' }" 
+
 
     input:
     tuple val(taxa), val(cluster), path(aln), path(const_sites), val(count)
@@ -28,6 +30,9 @@ process GUBBINS {
     def args = task.ext.args ?: ''
     prefix   = "${timestamp}-${taxa}-${cluster}"
     """
+    # set resource limit
+    ulimit -m ${task.memory.toBytes()}
+
     # Run Gubbins
     run_gubbins.py \\
         --threads $task.cpus \\
