@@ -46,10 +46,11 @@ RUN apt-get update && apt-get -y --no-install-recommends install \
     wget \
     r-base \
     r-base-dev \
-    bzip2 && \
+    bzip2 \
+    jq && \
     apt-get autoclean && \
     rm -rf /var/lib/apt/lists/*
     
 # required R packages
 RUN R -e "install.packages(c('tidyverse', 'phangorn','BiocManager', 'remotes'), repos='https://cran.rstudio.com/')"
-RUN R -e "BiocManager::install('treeio'); remotes::install_github('YuLab-SMU/ggtree')"
+RUN R -e "remotes::install_github('YuLab-SMU/treeio'); remotes::install_github('YuLab-SMU/ggtree')"
