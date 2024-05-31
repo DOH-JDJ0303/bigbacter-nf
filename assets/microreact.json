@@ -9,33 +9,33 @@
   },
   "files": {
     "snp_mat": {
-      "blob": "data:text/csv;base64,bnVsbCwyMDIySlEtMDA1OTIsMjAyNEpRLTAwMTA5X1QxLFJlZmVyZW5jZQoyMDIySlEtMDA1OTIsMCw1NDU4LDAKMjAyNEpRLTAwMTA5X1QxLDU0NTgsMCw1NDkzClJlZmVyZW5jZSwwLDU0OTMsMAo=",
+      "blob": "insert data here",
       "format": "text/csv",
       "id": "snp_mat",
-      "name": "1715369125-Escherichia-coli-01407-core-snps-dist.snippy-wide.csv",
+      "name": "insert name herev",
       "size": 113,
       "type": "matrix"
     },
     "metadata": {
-      "blob": "data:text/csv;base64,aWQKMjAyMkpRLTAwNTkyCjIwMjRKUS0wMDEwOV9UMQpSZWZlcmVuY2U=",
+      "blob": "insert data here",
       "format": "text/csv",
       "id": "metadata",
       "name": "matrix-labels",
       "type": "data"
     },
     "snp_tree": {
-      "blob": "data:application/octet-stream;base64,KDIwMjJKUS0wMDU5MjowLjA0OTg3MTkwOTgsMjAyNEpRLTAwMTA5X1QxOjU1MTAuNTA1NjcsUmVmZXJlbmNlOjAuMDQ5ODcxOTA5OCk7Cg==",
+      "blob": "insert data here",
       "format": "text/x-nh",
       "id": "snp_tree",
-      "name": "1715369125-Escherichia-coli-01407-core-snps-ML.snippy.scaled.nwk",
+      "name": "insert name here",
       "size": 79,
       "type": "tree"
     },
     "acc_mat": {
-      "blob": "data:text/csv;base64,bnVsbCwyMDI0SlEtMDAxMDlfVDEsMjAyMkpRLTAwNTkyCjIwMjJKUS0wMDU5MiwxMC4xMzkyNTcsMAoyMDI0SlEtMDAxMDlfVDEsMCwxMC4xMzkyNTcK",
+      "blob": "insert data here",
       "format": "text/csv",
       "id": "acc_mat",
-      "name": "1715369125-Escherichia-coli-01407-accessory-dist.poppunk-wide.csv",
+      "name": "insert name here",
       "size": 87,
       "type": "matrix"
     }
