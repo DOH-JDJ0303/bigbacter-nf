@@ -7,7 +7,7 @@ process GUBBINS {
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/gubbins%3A3.3.1--py39pl5321h3d4b85c_0' :
         'quay.io/biocontainers/gubbins:3.3.1--py310pl5321h83093d7_0' }"
-    containerOptions = "${ workflow.containerEngine == 'docker' || workflow.containerEngine == 'podman' ? '--shm-size 1g' : '' }" 
+    containerOptions = "${ workflow.containerEngine == 'docker' || workflow.containerEngine == 'podman' ? '--shm-size 5g' : '' }" 
 
 
     input:
