@@ -6,3 +6,8 @@ results/
 testing/
 testing*
 *.pyc
+/pipeline_info
+Cor_240802.csv
+depot.galaxyproject.org-singularity-gubbins%3A3.3.1--py39pl5321h3d4b85c_0.img.pulling.1723067434063
+.nf-core.yml
+.nf-core.yml
