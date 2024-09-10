@@ -3,11 +3,10 @@ process PUSH_CLUSTER_FILES {
     label 'process_low'
 
     input:
-    tuple val(taxa), val(cluster), path(ref), path(new_snippy)
+    tuple val(taxa), val(cluster), path(ref), path(new_snippy), path(assembly)
 
     output:
-    path 'ref.fa.gz'
-    path new_snippy, emit: cluster_files
+    tuple path(new_snippy), path(assembly), path('ref.fa.gz'), emit: cluster_files
     
     when:
     task.ext.when == null || task.ext.when
