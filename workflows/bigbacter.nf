@@ -47,6 +47,7 @@ include { NCBI_DATASETS    } from '../modules/local/ncbi-datasets'
 include { FASTERQDUMP      } from '../modules/local/fasterqdump'
 include { FASTP            } from '../modules/local/fastp'
 include { SEQTK_SEQ        } from '../modules/local/seqtk_seq'
+include { FORMAT_ASSEMBLY  } from '../modules/local/format-input'
 include { MRFIGS           } from '../modules/local/mrfigs'
 include { SUMMARY_TABLE    } from '../modules/local/summary-tables'
 include { COMBINED_SUMMARY } from '../modules/local/combined-summary'
@@ -101,9 +102,10 @@ def db_info ( db_path, outdir_path, timestamp, wait_file ) {
     // Add header
     db_info.append("Taxon,Cluster,File_Type,File_Name,Size,File_Date,File_Path\n")
     // Create empty variables for total counts
-    pp_size = 0
-    ref_size = 0
-    snippy_size = 0
+    pp_size       = 0
+    ref_size      = 0
+    snippy_size   = 0
+    assembly_size = 0
     // Iterate through taxa
     for ( taxon in file(db_path).list() ) {
         taxon_path = file(db_path).resolve(taxon)
@@ -149,16 +151,30 @@ def db_info ( db_path, outdir_path, timestamp, wait_file ) {
                 snippy_row = taxon+","+cluster+",SNP_Files,"+snippy+","+snippy_file_size+","+snippy_date+","+snippy_file.toUriString()+"\n"
                 ! snippy_row ?: db_info.append(snippy_row)
             }
+            // Assembly files
+            for ( assembly in file(cluster_path).resolve("assembly").list() ) { 
+                // Build file path
+                assembly_file = file(cluster_path).resolve("assembly").resolve(assembly)
+                // Total size
+                assembly_file_size = assembly_file.size()
+                assembly_size = assembly_size + assembly_file_size
+                // File date
+                assembly_date = new Date(assembly_file.lastModified())
+                // Create row & append
+                assembly_row = taxon+","+cluster+",Assembly_File,"+assembly+","+assembly_file_size+","+assembly_date+","+assembly_file.toUriString()+"\n"
+                ! assembly_row ?: db_info.append(assembly_row)
+            }
         }
     }
     // Get total and convert to GB
-    total_size = pp_size+ref_size+snippy_size
+    total_size = pp_size+ref_size+snippy_size+assembly_size
     total_size = MemoryUnit.of(total_size).toGiga()
-    pp_size = MemoryUnit.of(pp_size).toGiga()
-    ref_size = MemoryUnit.of(ref_size).toGiga()
-    snippy_size = MemoryUnit.of(snippy_size).toGiga()
+    pp_size = MemoryUnit.of(pp_size).toMega()
+    ref_size = MemoryUnit.of(ref_size).toMega()
+    snippy_size = MemoryUnit.of(snippy_size).toMega()
+    assembly_size = MemoryUnit.of(assembly_size).toMega()
     // Print to Screen
-    println "\n===========================\nBigBacter Database Summary:\n===========================\nDatabase Path: "+db_path+"\nPopPUNK Files: "+pp_size+"GB\nReference Files: "+ref_size+"GB\nSNP Files: "+snippy_size+"GB\nTotal: "+total_size+"GB\n"
+    println "\n===========================\nBigBacter Database Summary:\n===========================\nDatabase Path: "+db_path+"\nPopPUNK Files: "+pp_size+"MB\nReference Files: "+ref_size+"MB\nSNP Files: "+snippy_size+"MB\nAssembly Files: "+assembly_size+"MB\nTotal: "+total_size+"GB\n"
     // Return file
     return db_info
 }
@@ -247,12 +263,11 @@ workflow BIGBACTER {
         .collectFile(name: "samplesheet-collected.csv", sort: 'index', newLine: true)
         .set{ manifest_path }
 
-     /*
+    /*
     =============================================================================================================================
         QUALITY FILTER INPUTS
     =============================================================================================================================
     */
-
     if(params.assembly_qc){
         // MODULE: Run seqtk seq on assembly
         SEQTK_SEQ(
@@ -284,6 +299,22 @@ workflow BIGBACTER {
             .join(FASTP.out.reads, by: 0)
             .set{ manifest }
     }
+
+    /*
+    =============================================================================================================================
+        FORMAT INPUTS
+        - this occurs after all inputs sources have been combined (samplesheet & NCBI)
+    =============================================================================================================================
+    */
+    // MODULE: Gzip assembly (if needed) and rename to format "${sample}.fa.gz"
+    FORMAT_ASSEMBLY (
+        manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, assembly ] }
+    )
+    // Add formatted assembly back to manifest
+    manifest
+        .map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa, fastq_1, fastq_2 ] }
+        .join(FORMAT_ASSEMBLY.out.assembly, by: 0)
+        .map{ sample, taxa, fastq_1, fastq_2, assembly -> [ sample, taxa, assembly, fastq_1, fastq_2 ] }
 
     /*
     =============================================================================================================================
@@ -386,21 +417,18 @@ workflow BIGBACTER {
         .out
         .snp_files
         .map{ taxa, cluster, ref, new_snippy, old_snippy -> [ taxa, cluster, ref, new_snippy ] }
+        .join(manifest.map{ sample, taxa, assembly, fastq_1, fastq_2, cluster, status -> [ taxa, cluster, assembly ] }.groupTuple(by: [0,1]), by: [0,1])
         .set{ cluster_files }
     
     // if push is 'true'
-    ch_wait = cluster_files.concat(taxa_files).collect().flatten().last()
+    ch_wait = cluster_files.concat(taxa_files).collect().flatten().last() // force pipeline to wait till after all new database files have been created
     if(params.push){
         // SUBWORKFLOW: Push new BigBacter database
         PUSH_FILES(
             cluster_files,
             taxa_files
         )
-        PUSH_FILES
-            .out
-            .push_files
-            .last()
-            .set{ch_wait}
+        PUSH_FILES.out.push_files.last().set{ch_wait} // update the wait channel
     }
 
     // Collect database info - optional
@@ -447,6 +475,8 @@ workflow BIGBACTER {
 */
 
 workflow.onComplete {
+    // Reminder to push files
+    if ( ! params.push ) { println "\033[1;33m\n------------------------------------------------------\n\nNext steps:\n1. Check your results\n2. Run the command below to push this run to your database\n\n\033[0;37m> "+workflow.commandLine.replaceAll(/ -resume/, '')+" --push true -resume\n\n------------------------------------------------------\n\033[0m" }
     if (params.email || params.email_on_fail) {
         NfcoreTemplate.email(workflow, params, summary_params, projectDir, log)
     }
