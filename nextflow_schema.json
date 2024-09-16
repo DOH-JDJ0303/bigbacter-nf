@@ -26,10 +26,11 @@
                     "fa_icon": "fas fa-file-csv"
                 },
                 "ncbi": {
-                    "type": "string",
-                    "description": "Path to comma-separated file containing information for samples that should be pulled from NCBI.",
-                    "pattern": "^\\S+\\.csv$",
+                    "type": "string", 
                     "format": "file-path",
+                    "mimetype": "text/csv",
+                    "pattern": "^\\S+\\.csv$",
+                    "description": "Path to comma-separated file containing information for samples that should be pulled from NCBI.",
                     "fa_icon": "fas fa-file-csv"
                 },
                 "outdir": {
