@@ -13,19 +13,8 @@ process PUSH_CLUSTER_FILES {
 
     shell:
     '''
-    # clean up the reference assembly
-    ref=!{ref}
-    ## compress (if necessary)
-    if [[ !{ref} != *.gz ]]
-    then
-        gzip !{ref}
-        ref="${ref}.gz"
-    fi
-    ## rename (if necessary)
-    if [[ !{ref} != ref.fa.gz ]]
-    then
-        mv ${ref} ref.fa.gz
-    fi
+    # apply compression if needed
+    gzip * || true
     '''
 }
 
