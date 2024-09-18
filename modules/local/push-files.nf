@@ -3,7 +3,7 @@ process PUSH_CLUSTER_FILES {
     label 'process_low'
 
     input:
-    tuple val(taxa), val(cluster), path(ref), path(new_snippy), path(assembly)
+    tuple val(taxa), val(cluster), path(ref, stageAs: "ref.fa.gz"), path(new_snippy), path(assembly)
 
     output:
     tuple path(new_snippy), path(assembly), path('ref.fa.gz'), emit: cluster_files
