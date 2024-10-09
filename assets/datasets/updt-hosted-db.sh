@@ -80,6 +80,16 @@ make_config \
     "PREPARE_DB Test" \
     "Runs minimal test of the "PREPARE_DB" workflow."
 
+#----- EXAMPLE DATABASE -----#
+cp Acinetobacter_baumannii_db.csv example_db.csv
+cat Pseudomonas_aeruginosa_db.csv | tail -n +2 >> example_db.csv
+# create config file
+make_config \
+    example_db.csv \
+    "Nextflow config file for downloading the\n    database files for the wiki example" \
+    "Wiki Example: Database" \
+    "Nextflow config file for downloading the database files for the wiki example"
+
 #-----END-----# 
 # close db_profiles config
 echo "}" >> ../../conf/db_profiles.config
