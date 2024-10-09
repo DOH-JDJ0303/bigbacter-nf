@@ -1,5 +1,4 @@
 process TIMESTAMP {
-    container = 'docker.io/jdj0303/bigbacter-base:1.0.0'
 
     output:
     stdout

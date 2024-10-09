@@ -20,7 +20,7 @@ process SEQTK_SEQ {
 
     script:
     args = task.ext.args ?: ''
-    prefix = task.ext.prefix ?: "${timestamp}-${sample}"
+    prefix = task.ext.prefix ?: sample
     """
     seqtk \\
         seq \\

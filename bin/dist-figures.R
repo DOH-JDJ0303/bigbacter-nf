@@ -16,6 +16,7 @@ input_source <- args[6]
 threshold <- args[7] # 100 or 1
 percent <- args[8] # if dist should be converted to percentage - true or false
 prefix <- args[9] # output prefix
+max_cluster_size <- args[10] # max cluster size for static images to be created
 
 #---- OUTPUT NAME ----#
 # base filename
@@ -79,6 +80,11 @@ text_data <- df %>%
   subset(as.numeric(dist) < as.numeric(threshold)) %>%
   mutate(dist = round(dist, digits = 2))
 
+# create wide format
+df.wide <- df %>%
+  pivot_wider(names_from = ID2, values_from = dist) %>%
+  rename('null' = ID1)
+
 #---- ARRANGE BY TREE TIP ORDER (IF TREE PROVIDED) ----#
 if(file.exists(tree_path)){
   # load tree
@@ -105,7 +111,7 @@ if(file.exists(tree_path)){
 
 }
 
-#---- CREATE METADATA----#
+#---- CREATE METADATA (FOR FIGURE)----#
 # load list of new samples
 new_samples <- read.csv(manifest_path) %>% .$sample
 # create metadata
@@ -122,37 +128,35 @@ df.meta <- df %>%
   arrange(sample)
 
 #---- PLOT DISTANCE MATRIX ----#
-p_mat <- ggplot(df, aes(x=ID1, y=ID2, fill=dist))+
-  geom_tile()+
-  geom_text(data=text_data, aes(label=dist))+
-  theme(axis.text.x = element_text(angle=90, 
-                                   face = df.meta$font_face, 
-                                   color = df.meta$font_color),
-        axis.text.y = element_text(face = df.meta$font_face, 
-                                   color = df.meta$font_color))+
-  scale_fill_gradient(low = "#009E73", high = "white")+
-  labs(fill=paste(dist_lab,"Distance"))
-# determine matrix dimensions
-if(n_iso > 16){
-  wdth <- 0.6*n_iso
-  hght <- 0.5*n_iso
-}else{
-   wdth <- 10
-   hght <- 8.5
-}
-# add plot label
-p_mat <- p_mat+
-  ggtitle(paste0("Input: ",input_type,"\nSource: ",str_to_title(input_source)))
+if (n_iso < as.numeric(max_cluster_size)) {
+  p_mat <- ggplot(df, aes(x=ID1, y=ID2, fill=dist))+
+    geom_tile()+
+    geom_text(data=text_data, aes(label=dist))+
+    theme(axis.text.x = element_text(angle=90, 
+                                    face = df.meta$font_face, 
+                                    color = df.meta$font_color),
+          axis.text.y = element_text(face = df.meta$font_face, 
+                                    color = df.meta$font_color))+
+    scale_fill_gradient(low = "#009E73", high = "white")+
+    labs(fill=paste(dist_lab,"Distance"))
+  # determine matrix dimensions
+  if(n_iso > 16){
+    wdth <- 0.6*n_iso
+    hght <- 0.5*n_iso
+  }else{
+    wdth <- 10
+    hght <- 8.5
+  }
+  # add plot label
+  p_mat <- p_mat+
+    ggtitle(paste0("Input: ",input_type,"\nSource: ",str_to_title(input_source)))
 
-#---- SAVE FILES ----#
-# plot image
-ggsave(filename = paste0(basename,".jpg"), plot = p_mat, dpi = 300, width = wdth, height = hght, limitsize = F)
-# distance matrix
+  # plot image
+  ggsave(filename = paste0(basename,".jpg"), plot = p_mat, dpi = 300, width = wdth, height = hght, limitsize = F)
+}
+
+#---- WRITE DISTANCE FILES ----#
 ## long format
 write.csv(x = df, file = paste0(basename,"-long.csv"), quote = F, row.names = F)
 ## wide format
-# create wide format
-df.wide <- df %>%
-  pivot_wider(names_from = ID2, values_from = dist) %>%
-  rename('null' = ID1)
 write.csv(x = df.wide, file = paste0(basename,"-wide.csv"), quote = F, row.names = F)

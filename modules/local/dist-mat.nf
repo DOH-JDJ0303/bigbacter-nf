@@ -13,8 +13,9 @@ process DIST_MAT {
     val timestamp
 
     output:
-    path "*.jpg"
-    path "*.csv"
+    tuple val(taxa), val(cluster), val(input_source), path("*.jpg"),          emit: figure, optional: true
+    tuple val(taxa), val(cluster), val(input_source), path("*-wide.csv"),     emit: dist_wide
+    tuple val(taxa), val(cluster), val(input_source), path("*-long.csv"),     emit: dist_long
 
     when:
     task.ext.when == null || task.ext.when
@@ -33,6 +34,7 @@ process DIST_MAT {
         "!{input_source}" \
         "!{threshold}" \
         "!{percent_bool}" \
-        "!{prefix}"
+        "!{prefix}" \
+        "!{params.max_static}"
     '''
 }

@@ -270,9 +270,10 @@ workflow CORE {
         .set{ all_stats }
 
     emit:
-    snp_files = snp_files   // channel: [ val(taxa), val(cluster), path(ref), path(new_snippy), path(old_snippy) ]
-    tree      = all_trees   // channel: [ val(taxa), val(cluster), path(tree), val(source), val(type), val(method), path(stats) ]
-    dist      = all_dists   // channel: [ val(taxa), val(cluster), path(dist), val(source) ]
-    stats     = all_stats   // channel: [ val(taxa), val(cluster), path(stats) ]
-    versions  = ch_versions // channel: [ versions.yml ]
+    snp_files = snp_files              // channel: [ val(taxa), val(cluster), path(ref), path(new_snippy), path(old_snippy) ]
+    tree      = TREE_FIGURE.out.tree   // channel: [ val(taxa), val(cluster), val(source), path(tree) ]
+    dist      = DIST_MAT.out.dist_wide // channel: [ val(taxa), val(cluster), val(source), path(dist) ]
+    meta      = TREE_FIGURE.out.meta      // channel: [ val(taxa), val(cluster), val(source), path(meta) ]
+    stats     = all_stats              // channel: [ val(taxa), val(cluster), path(stats) ]
+    versions  = ch_versions            // channel: [ versions.yml ]
 }

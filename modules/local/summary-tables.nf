@@ -22,9 +22,9 @@ process SUMMARY_TABLE {
         "!{params.strong_link_cutoff}" \
         "!{params.inter_link_cutoff}" \
         *.snippy.stats \
-        *.snippy.dist \
+        *.snippy-wide.csv \
         *.gubbins.stats \
-        *.gubbins.dist \
+        *.gubbins-wide.csv \
         !{manifest}
     '''
 }

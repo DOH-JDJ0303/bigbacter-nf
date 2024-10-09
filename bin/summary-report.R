@@ -50,7 +50,7 @@ if(file.exists(gubbins_stats_file)){
 snp_dist_metrics <- function(dist_file, source){
   # Load distance matrix - if the file exists
   if(file.exists(dist_file) & file.size(dist_file) != 0L){
-    dist <- read_tsv(dist_file) %>%
+    dist <- read_csv(dist_file) %>%
       rename(ID = 1) %>%
       pivot_longer(names_to = "ID2", values_to = "snps", cols = 2:ncol(.))
 
@@ -123,7 +123,35 @@ summary <- snippy_stats %>%
          ISO_IN_CLUSTER = n_iso,
          ISO_PASS_QC = n_iso_qc,
          ) %>%
-  select(ID, STATUS, QUAL, RUN_ID, TAXA, CLUSTER, ISO_IN_CLUSTER, ISO_PASS_QC, MEAN_SNP_DIST_SNIPPY, MIN_SNP_DIST_SNIPPY, MAX_SNP_DIST_SNIPPY, STRONG_LINKAGE_SNIPPY, INTER_LINKAGE_SNIPPY, MEAN_SNP_DIST_GUBBINS, MIN_SNP_DIST_GUBBINS, MAX_SNP_DIST_GUBBINS, STRONG_LINKAGE_GUBBINS, INTER_LINKAGE_GUBBINS, LENGTH, ALIGNED, UNALIGNED, RECOMB, VARIANT, HET, MASKED, LOWCOV, PER_GENFRAC, PER_LOWCOV, PER_HET)
+  select(ID, 
+         STATUS, 
+         QUAL, 
+         RUN_ID, 
+         TAXA, 
+         CLUSTER, 
+         ISO_IN_CLUSTER,
+         ISO_PASS_QC, 
+         MEAN_SNP_DIST_SNIPPY, 
+         MIN_SNP_DIST_SNIPPY, 
+         MAX_SNP_DIST_SNIPPY, 
+         STRONG_LINKAGE_SNIPPY, 
+         INTER_LINKAGE_SNIPPY, 
+         MEAN_SNP_DIST_GUBBINS, 
+         MIN_SNP_DIST_GUBBINS, 
+         MAX_SNP_DIST_GUBBINS, 
+         STRONG_LINKAGE_GUBBINS, 
+         INTER_LINKAGE_GUBBINS, 
+         LENGTH, 
+         ALIGNED, 
+         UNALIGNED, 
+         RECOMB, 
+         VARIANT, 
+         HET, 
+         MASKED, 
+         LOWCOV, 
+         PER_GENFRAC, 
+         PER_LOWCOV, 
+         PER_HET)
 
 ## make file name
 filename <- paste0(run_id,"-",taxa,"-",cluster,"-summary.tsv")

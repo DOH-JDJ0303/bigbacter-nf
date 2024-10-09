@@ -26,10 +26,12 @@
                     "fa_icon": "fas fa-file-csv"
                 },
                 "ncbi": {
-                    "type": "string",
-                    "description": "Path to comma-separated file containing information for samples that should be pulled from NCBI.",
+                    "type": "string", 
+                    "format": "file-path",
+                    "mimetype": "text/csv",
                     "pattern": "^\\S+\\.csv$",
-                    "format": "file-path"
+                    "description": "Path to comma-separated file containing information for samples that should be pulled from NCBI.",
+                    "fa_icon": "fas fa-file-csv"
                 },
                 "outdir": {
                     "type": "string",
@@ -144,6 +146,18 @@
                     "default": 50,
                     "description": "SNP distance threshold used to classify intermediate genomic linkages (default: 50)",
                     "fa_icon": "fas fa-link"
+                },
+                "partition_threshold": {
+                    "type": "integer",
+                    "default": 100,
+                    "description": "SNP distance threshold used to partition samples",
+                    "fa_icon": "fas fa-chart-pie"
+                },
+                "max_static": {
+                    "type": "integer",
+                    "default": 100,
+                    "fa_icon": "fas fa-image",
+                    "description": "Maximum number of samples that can be in a cluster for static images to be created."
                 }
             }
         },

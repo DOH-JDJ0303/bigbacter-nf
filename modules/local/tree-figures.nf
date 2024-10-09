@@ -3,14 +3,13 @@ process TREE_FIGURE {
     label 'process_low'
 
     input:
-    tuple val(taxa), val(cluster), path(tree), val(tree_source), val(tree_type), val(tree_method),  path(core_stats), path(manifest)
+    tuple val(taxa), val(cluster), path(tree), val(tree_source), val(tree_type), val(tree_method), path(core_stats), path(manifest)
     val timestamp
 
     output:
-    path "*.jpg*"
-    path "*.corrected.nwk", optional: true
-    path "*.scaled.nwk",    optional: true
-
+    tuple val(taxa), val(cluster), val(tree_source), path("*.jpg*"),          emit: figure, optional: true
+    tuple val(taxa), val(cluster), val(tree_source), path("*-metadata.csv"), emit: meta, optional: true
+    tuple val(taxa), val(cluster), val(tree_source), path("*.final.nwk"),     emit: tree
 
     when:
     task.ext.when == null || task.ext.when
@@ -19,6 +18,15 @@ process TREE_FIGURE {
     prefix = "${timestamp}-${taxa}-${cluster}"
     '''
     # run script
-    tree-figures.R !{tree} "!{manifest}" "!{tree_type}" "!{tree_method}" "!{tree_source}" "!{prefix}" "!{core_stats}"
+    tree-figures.R \
+        !{tree} \
+        "!{manifest}" \
+        "!{tree_type}" \
+        "!{tree_method}" \
+        "!{tree_source}" \
+        "!{prefix}" \
+        "!{core_stats}" \
+        "!{params.max_static}" \
+        "!{params.partition_threshold}"
     '''
 }
