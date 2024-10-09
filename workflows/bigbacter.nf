@@ -364,21 +364,6 @@ workflow BIGBACTER {
         SUMMARIZE RESULTS
     =============================================================================================================================
     */
-    // Consolidate results for Microreact
-    CORE
-        .out
-        .meta
-        .join(CORE.out.dist, by: [0,1,2])
-        .join(CORE.out.tree, by: [0,1,2])
-        .combine(ACCESSORY.out.dist.map{ taxa, cluster, source, dist -> [ taxa, cluster, dist] }, by: [0,1])
-        .set{ ch_microreact }
-    // MODULE: Create Microreact figures
-    MRFIGS (
-        ch_microreact,
-        file("$projectDir/assets/microreact.json", checkIfExists: true),
-        timestamp        
-    )
-    
     // Consolidate results for summarylines
     CORE
         .out
@@ -400,6 +385,22 @@ workflow BIGBACTER {
        manifest_path,
        timestamp
    )
+
+    // Consolidate results for Microreact
+    CORE
+        .out
+        .meta
+        .join(CORE.out.dist, by: [0,1,2])
+        .join(CORE.out.tree, by: [0,1,2])
+        .combine(ACCESSORY.out.dist.map{ taxa, cluster, source, dist -> [ taxa, cluster, dist] }, by: [0,1])
+        .combine(SUMMARY_TABLE.out.summary, by: [0,1])
+        .set{ ch_microreact }
+    // MODULE: Create Microreact figures
+    MRFIGS (
+        ch_microreact,
+        file("$projectDir/assets/microreact.json", checkIfExists: true),
+        timestamp        
+    )
 
     /*
     =============================================================================================================================
@@ -476,7 +477,7 @@ workflow BIGBACTER {
 
 workflow.onComplete {
     // Reminder to push files
-    if ( ! params.push ) { println "\033[1;33m\n------------------------------------------------------\n\nNext steps:\n1. Check your results\n2. Run the command below to push this run to your database\n\n\033[0;37m> "+workflow.commandLine.replaceAll(/ -resume/, '')+" --push true -resume\n\n------------------------------------------------------\n\033[0m" }
+    if ( ! params.push & !(workflow.commandLine =~ "PREPARE_DB") ) { println "\033[1;33m\n------------------------------------------------------\n\nNext steps:\n1. Check your results\n2. Run the command below to push this run to your database\n\n\033[0;37m> "+workflow.commandLine.replaceAll(/ -resume/, '')+" --push true -resume\n\n------------------------------------------------------\n\033[0m" }
     if (params.email || params.email_on_fail) {
         NfcoreTemplate.email(workflow, params, summary_params, projectDir, log)
     }

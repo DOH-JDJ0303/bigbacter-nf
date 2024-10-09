@@ -2,7 +2,7 @@ process MRFIGS {
     tag "${prefix}"
 
     input:
-    tuple val(taxa), val(cluster), val(source), path(metadata), path(snp_mat), path(snp_tree), path(acc_mat)
+    tuple val(taxa), val(cluster), val(source), path(metadata), path(snp_mat), path(snp_tree), path(acc_mat), path(summary)
     path template
     val timestamp
 
@@ -15,7 +15,10 @@ process MRFIGS {
     prefix = "${timestamp}-${taxa}-${cluster}.${source}"
     script:
     """
-    mrfigs.sh ${template} ${prefix} ${metadata} ${snp_mat} ${snp_tree} ${acc_mat}
+    # combine tree partition data with the run summary
+    mrfigs-format.R ${metadata} ${summary} ${summary.simpleName}.csv
+    # create the microreact figures
+    mrfigs.sh ${template} ${prefix} ${summary.simpleName}.csv ${snp_mat} ${snp_tree} ${acc_mat}
     """
 }
 

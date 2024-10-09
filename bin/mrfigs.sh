@@ -30,7 +30,9 @@ ACC_MAT=$6
 # Metadata
 META_FILE=${META##./}
 
-META_DATA=$(cat $META | tr '\t' ',' | awk -v ORS='\\n' '{print $0}')
+META_DATA=$(cat $META | tr -d ' ' | awk -v ORS='\\n' '{print $0}')
+
+echo $META_DATA
 
 # Core SNP Matrix
 SNP_MAT_FILE=${SNP_MAT##./}

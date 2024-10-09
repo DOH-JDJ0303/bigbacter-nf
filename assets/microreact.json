@@ -235,6 +235,50 @@
       "columns": [
         {
           "field": "ID"
+        },
+        {
+          "field": "STATUS",
+          "fixed": false
+        },
+        {
+          "field": "QUAL",
+          "fixed": false
+        },
+        {
+          "field": "PARTITION",
+          "fixed": false
+        },
+        {
+          "field": "ISO_IN_CLUSTER",
+          "fixed": false
+        },
+        {
+          "field": "ISO_PASS_QC",
+          "fixed": false
+        },
+        {
+          "field": "MEAN_SNP_DIST_SNIPPY",
+          "fixed": false
+        },
+        {
+          "field": "MIN_SNP_DIST_SNIPPY",
+          "fixed": false
+        },
+        {
+          "field": "MAX_SNP_DIST_SNIPPY",
+          "fixed": false
+        },
+        {
+          "field": "MEAN_SNP_DIST_GUBBINS",
+          "fixed": false
+        },
+        {
+          "field": "MIN_SNP_DIST_GUBBINS",
+          "fixed": false
+        },
+        {
+          "field": "MAX_SNP_DIST_GUBBINS",
+          "fixed": false
         }
       ],
       "file": "metadata"
