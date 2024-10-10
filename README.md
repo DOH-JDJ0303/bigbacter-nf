@@ -30,7 +30,7 @@ BigBacter is a pipeline aimed at simplifying bacterial genomic surveillance.
 
 ### 1. Configure your PopPUNK database (Performed once per species):
 > [!NOTE]
-> This example shows how you would configure an *E. coli* database. You can find a list of available PopPUNK databases [here](). You can also find instructions for how to add your own databases [here]().
+> This example shows how you would configure an *E. coli* database. You can find a list of available PopPUNK databases [here](https://raw.githubusercontent.com/DOH-JDJ0303/bigbacter-nf/refs/heads/main/docs/db_profiles.md). You can also find instructions for how to add your own databases [here]().
 ```
 nextflow run DOH-JDJ0303/bigbacter-nf \
     -r main \
