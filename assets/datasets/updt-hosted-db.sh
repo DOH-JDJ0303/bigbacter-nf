@@ -7,7 +7,7 @@ make_config () {
     PROFILE=$3
     DESCRIPTION=$4
 
-    URL="https://raw.githubusercontent.com/DOH-JDJ0303/bigbacter-nf/main/assets/datasets/${NAME}"
+    URL="\${projectDir}/assets/datasets/${NAME}"
 
     NAME=${NAME%.csv}
 
