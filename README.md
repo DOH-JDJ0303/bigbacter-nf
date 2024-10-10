@@ -22,6 +22,14 @@ BigBacter is a pipeline aimed at simplifying bacterial genomic surveillance.
 
 \* Outputs are summarized in Microreact files 🙌
 
+**Required Inputs**
+1) Sample name
+2) Sample taxonomy (species or closer)
+3) Sample assembly
+4) Sample reads (Illumina paired-end)
+5) Species-specific PopPUNK database (list of pre-made databases can be found [here](https://www.bacpop.org/poppunk/))
+> [!TIP]
+> BigBacter is designed to be run following general bacterial analysis. We recommend one of the following (in no specific order): [PHoeNIx](https://github.com/CDCgov/phoenix), [Bactopia](https://github.com/bactopia/bactopia), or [TheiaProk](https://github.com/theiagen/public_health_bioinformatics).
 ### Checkout the [wiki](https://github.com/DOH-JDJ0303/bigbacter-nf/wiki) to learn more!
 
 ## Quick Start
