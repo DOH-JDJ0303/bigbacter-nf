@@ -84,7 +84,7 @@ rename_file ${db} '_fit.npz' ' ' ${new_name} "false"
 rename_file ${db} '_fit.pkl' ' ' ${new_name} "false"
 rename_file ${db} '.dists.npy' '\.refs\.' ${new_name} "false"
 rename_file ${db} '.dists.pkl' '\.refs\.' ${new_name} "false"
-rename_file ${db} '_graph.gt' '\.refs\.' ${new_name} "false"
+rename_file ${db} '_graph.gt' '\.refs' ${new_name} "false"
 
 # compress the new directory
 echo -e "\nCompressing the new database:"
