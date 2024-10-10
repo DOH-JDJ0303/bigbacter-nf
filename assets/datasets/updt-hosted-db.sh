@@ -95,7 +95,8 @@ make_config \
 #-----END-----# 
 # close db_profiles config
 echo "}" >> ../../conf/db_profiles.config
-# create list of databases
-cat ../../conf/db_profiles.config | grep includeConfig | cut -f 5 -d ' ' | grep -Ev 'test_db|example_db' > ../../docs/db_profiles.md
+# create list of databases for README.md
+echo -e "|Profile Names|\n|-|" > ../../docs/db_profiles.md
+cat ../../conf/db_profiles.config | grep includeConfig | cut -f 5 -d ' ' | grep -Ev 'test_db|example_db' >> ../../docs/db_profiles.md
 # clean up
 rm pp.html
