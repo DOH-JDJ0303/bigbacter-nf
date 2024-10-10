@@ -27,6 +27,8 @@ rm *_db.csv
 rm ../../conf/*_db.config
 # start new profile config
 echo "profiles {" > ../../conf/db_profiles.config
+# start new database summary
+echo ""
 # download HTML for the PopPUNK database repo page
 wget https://www.bacpop.org/poppunk/ -O pp.html
 
@@ -93,5 +95,7 @@ make_config \
 #-----END-----# 
 # close db_profiles config
 echo "}" >> ../../conf/db_profiles.config
+# create list of databases
+cat ../../conf/db_profiles.config | grep includeConfig | cut -f 5 -d ' ' | grep -Ev 'test_db|example_db' > ../../docs/db_profiles.md
 # clean up
 rm pp.html
