@@ -76,10 +76,11 @@ workflow CORE {
         timestamp
     )
     ch_versions = ch_versions.mix(SNIPPY_SINGLE.out.versions)
+
     // Group samples by taxa and cluster
     manifest
         .map{ sample, taxa, assembly, fastq_1, fastq_2, cluster, status, ref -> [ sample, taxa, cluster, status, ref ] }
-        .join(SNIPPY_SINGLE.out.results)
+        .join(SNIPPY_SINGLE.out.results, by: [0,1])
         .groupTuple(by: [1,2])
         .map {sample, taxa, cluster, status, ref, new_snps -> [ taxa, cluster, status.get(0), ref.get(0), new_snps ]}
         .set {clust_grps}

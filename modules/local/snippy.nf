@@ -7,7 +7,7 @@ process SNIPPY_SINGLE {
     val timestamp
 
     output:
-    tuple val(sample), path('*.tar.gz'), emit: results
+    tuple val(sample), val(taxa), path('*.tar.gz'), emit: results
     path 'versions.yml',                 emit: versions
 
     when:
