@@ -308,12 +308,12 @@ workflow BIGBACTER {
     */
     // MODULE: Gzip assembly (if needed) and rename to format "${sample}.fa.gz"
     FORMAT_ASSEMBLY (
-        manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, assembly ] }
+        manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa, assembly ] }
     )
     // Add formatted assembly back to manifest
     manifest
         .map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa, fastq_1, fastq_2 ] }
-        .join(FORMAT_ASSEMBLY.out.assembly, by: 0)
+        .join(FORMAT_ASSEMBLY.out.assembly, by: [0,1])
         .map{ sample, taxa, fastq_1, fastq_2, assembly -> [ sample, taxa, assembly, fastq_1, fastq_2 ] }
 
     /*
