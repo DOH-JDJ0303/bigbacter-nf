@@ -11,7 +11,7 @@ process FASTERQDUMP {
     tuple val(sample), val(taxa), val(assembly), val(sra)
 
     output:
-    tuple val(sample), path('*_1.fastq.gz'), path('*_2.fastq.gz'), emit: reads
+    tuple val(sample), val(taxa), path('*_1.fastq.gz'), path('*_2.fastq.gz'), emit: reads
     path "versions.yml",                                           emit: versions
 
     when:

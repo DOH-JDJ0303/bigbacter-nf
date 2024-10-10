@@ -197,11 +197,11 @@ workflow CLUSTER {
     */
     // Add padding to cluster numbers and determine if they are new or old
     cluster_results
-        .map { sample, taxa, cluster -> [sample, cluster.padLeft(5, "0"), get_status(taxa, cluster.padLeft(5, "0"))]}
+        .map { sample, taxa, cluster -> [sample, taxa, cluster.padLeft(5, "0"), get_status(taxa, cluster.padLeft(5, "0"))]}
         .set { sample_cluster_status }
 
     emit:
-    sample_cluster_status = sample_cluster_status            // channel: [ val(sample), val(cluster), val(new_status), val(merge_status) ]
+    sample_cluster_status = sample_cluster_status            // channel: [ val(sample), val(taxa), val(cluster), val(new_status), val(merge_status) ]
     new_pp_db             = POPPUNK_ASSIGN.out.new_pp_db     // channel: [ val(taxa), path(new_pp_db)]
     core_acc_dist         = POPPUNK_ASSIGN.out.core_acc_dist // channel: [ val(taxa), path(dist) ]
     versions              = ch_versions                      // channel: [ versions.yml ]

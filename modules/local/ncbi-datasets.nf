@@ -6,7 +6,7 @@ process NCBI_DATASETS {
     tuple val(sample), val(taxa), val(assembly), val(sra)
 
     output:
-    tuple val(sample), path("*.fna"), emit: assembly
+    tuple val(sample), val(taxa), path("*.fna"), emit: assembly
     path "versions.yml",              emit: versions
 
     when:

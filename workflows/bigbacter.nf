@@ -248,8 +248,8 @@ workflow BIGBACTER {
         // Added samples to the manifest channel
         ch_ncbi
             .map{ sample, taxa, assembly, sra -> [ sample, taxa ] }
-            .join(NCBI_DATASETS.out.assembly, by: 0)
-            .join(FASTERQDUMP.out.reads, by: 0)
+            .join(NCBI_DATASETS.out.assembly, by: [0, 1])
+            .join(FASTERQDUMP.out.reads, by: [0, 1])
             .concat(manifest)
             .set{ manifest }
     }
@@ -271,7 +271,7 @@ workflow BIGBACTER {
     if(params.assembly_qc){
         // MODULE: Run seqtk seq on assembly
         SEQTK_SEQ(
-            manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, assembly ] },
+            manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa, assembly ] },
             timestamp
         )
         ch_versions = ch_versions.mix(SEQTK_SEQ.out.versions)
@@ -279,7 +279,7 @@ workflow BIGBACTER {
         // Add quality filter datasets back to manifest
         manifest
             .map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa, fastq_1, fastq_2 ] }
-            .join(SEQTK_SEQ.out.assembly, by: 0)
+            .join(SEQTK_SEQ.out.assembly, by: [0, 1])
             .map{ sample, taxa, fastq_1, fastq_2, assembly -> [ sample, taxa, assembly, fastq_1, fastq_2 ] }
             .set{ manifest }
     }
@@ -288,7 +288,7 @@ workflow BIGBACTER {
     // MODULE: Run fastp on reads
     if (params.read_qc){
         FASTP(
-            manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, fastq_1, fastq_2 ] },
+            manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa, fastq_1, fastq_2 ] },
             timestamp
         )
         ch_versions = ch_versions.mix(FASTP.out.versions)
@@ -296,7 +296,7 @@ workflow BIGBACTER {
         // Add quality filter datasets back to manifest
         manifest
             .map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa, assembly ] }
-            .join(FASTP.out.reads, by: 0)
+            .join(FASTP.out.reads, by: [0,1])
             .set{ manifest }
     }
 
@@ -329,8 +329,7 @@ workflow BIGBACTER {
     ch_versions = ch_versions.mix(CLUSTER.out.versions)
 
     // Update manifest with cluster and status info
-    CLUSTER.out.sample_cluster_status.map { sample, cluster, status -> [sample, cluster, status] }.set { sample_cluster_status }
-    manifest.join(sample_cluster_status).set { manifest }
+    manifest.join(CLUSTER.out.sample_cluster_status, by: [0,1]).set { manifest }
 
     /*
     =============================================================================================================================
