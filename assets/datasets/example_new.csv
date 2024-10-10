@@ -1,4 +1,5 @@
 sample,taxa,assembly,sra
-sample44,Acinetobacter_baumannii,GCA_040237905.1,SRR29454008
-sample45,Acinetobacter_baumannii,GCA_040249835.1,SRR29454007
-sample11,Pseudomonas_aeruginosa,GCA_040747435.1,SRR29857431
+sample42,Acinetobacter_baumannii,GCA_040237905.1,SRR29454008
+sample43,Acinetobacter_baumannii,GCA_040249835.1,SRR29454007
+sample13,Klebsiella_pneumoniae,GCA_040960425.1,SRR30038036
+sample14,Klebsiella_pneumoniae,GCA_031052475.1,SRR24324096

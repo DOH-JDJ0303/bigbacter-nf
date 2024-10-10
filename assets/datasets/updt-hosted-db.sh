@@ -82,7 +82,7 @@ make_config \
 
 #----- EXAMPLE DATABASE -----#
 cp Acinetobacter_baumannii_db.csv example_db.csv
-cat Pseudomonas_aeruginosa_db.csv | tail -n +2 >> example_db.csv
+cat Klebsiella_pneumoniae_db.csv | tail -n +2 >> example_db.csv
 # create config file
 make_config \
     example_db.csv \
