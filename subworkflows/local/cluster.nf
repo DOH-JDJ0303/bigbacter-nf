@@ -100,14 +100,15 @@ workflow CLUSTER {
     )
     ch_versions = ch_versions.mix(POPPUNK_VISUAL.out.versions)
 
-    // Load cluster results  
+    // Load cluster results
     POPPUNK_ASSIGN
         .out
         .cluster_results
-        .map { taxa, results -> [ results ] }
-        .splitCsv(header: true)
-        .map { tuple(it.Taxon.get(0), it.Cluster.get(0)) } // 'Taxon' == 'sample' != 'taxa'
-        .join(manifest.map { sample, taxa, assembly, fastq_1, fastq_2  -> [ sample, taxa ]}, by: 0)
+        .splitCsv(header: true, elem: 1)
+        .transpose()
+        .map{ taxa, results -> [ results.Taxon, taxa, results.Cluster ] }
+        .join(manifest.map { sample, taxa, assembly, fastq_1, fastq_2  -> [ sample, taxa ]}, by: [0,1])
+        .map{ sample, taxa, cluster -> [ sample, cluster, taxa ] }
         .set {cluster_results}
     
     /*
