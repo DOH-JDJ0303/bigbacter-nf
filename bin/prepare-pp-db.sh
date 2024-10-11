@@ -31,7 +31,7 @@ rename_file () {
 
     # check full and ref version file paths
     echo -e "\nSearching for file with pattern '${pattern}':"
-    main_file=$(ls ${old_db}/*${pattern} | grep -v "${alt}" 2> /dev/null)
+    main_file=$(ls ${old_db}/*${pattern} | grep -Ev "${alt}" 2> /dev/null)
     alt_file=$(ls ${old_db}/*${pattern} | grep "${alt}" 2> /dev/null)
     
     # Check if either the full version or ref version of the file exists and preferentially use the full version
@@ -78,7 +78,7 @@ new_name='0000000000'
 rename_file ${db} '.refs' ' ' ${new_name} "true"
 
 ## Required files
-rename_file ${db} '_clusters.csv' 'unword' ${new_name} "false"
+rename_file ${db} '_clusters.csv' 'unword|microreact' ${new_name} "false"
 rename_file ${db} '.h5' '\.refs\.' ${new_name} "false"
 rename_file ${db} '_fit.npz' ' ' ${new_name} "false"
 rename_file ${db} '_fit.pkl' ' ' ${new_name} "false"
