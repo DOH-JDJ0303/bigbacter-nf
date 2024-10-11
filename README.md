@@ -17,7 +17,7 @@ BigBacter is a pipeline aimed at simplifying bacterial genomic surveillance.
 
 **Main outputs:**
 1) Phylogenetic trees (Core SNPs)
-2) Distance matricies (Accessory distance and core SNPs)
+2) Distance matrices (Accessory distance and core SNPs)
 3) Tabulated summary (QC metrics and more)
 
 \* Outputs are summarized in Microreact files 🙌
