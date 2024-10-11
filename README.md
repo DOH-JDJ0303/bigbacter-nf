@@ -3,8 +3,8 @@
 BigBacter is a pipeline aimed at simplifying bacterial genomic surveillance.
 
 **Main features**
-1) Maintains personal database of samples that can be stored locally or on the cloud
-2)  Automatically included samples from the database when they are closely related to new samples
+1) Saves your samples to a personal database (can be stored locally or on the cloud)
+2)  Includes database samples when they are closely related to new samples
 3) Optimized to reduce core genome shrinkage
 4) Optimized for speed and resource usage
 5) Multiple species/subtypes can be included in a single run
@@ -25,10 +25,10 @@ BigBacter is a pipeline aimed at simplifying bacterial genomic surveillance.
 1) Sample name
 2) Sample species
 3) Sample assembly
-4) Sample reads (only Illumina paired-end, for now)
+4) Sample reads (Illumina paired-end, only ... for now)
 5) Species-specific PopPUNK database (pre-made databases can be found [here](https://www.bacpop.org/poppunk/))
 > [!TIP]
-> BigBacter is designed to run after general bacterial analysis. We recommend one of the following (in no specific order): [PHoeNIx](https://github.com/CDCgov/phoenix), [Bactopia](https://github.com/bactopia/bactopia), or [TheiaProk](https://github.com/theiagen/public_health_bioinformatics).
+> BigBacter is designed to run after general bacterial analysis (e.g, [PHoeNIx](https://github.com/CDCgov/phoenix), [Bactopia](https://github.com/bactopia/bactopia), [TheiaProk](https://github.com/theiagen/public_health_bioinformatics).)
 
 ## How to use BigBacter:
 1) [Quick Start](https://github.com/DOH-JDJ0303/bigbacter-nf/wiki/1.-Quick-Start)
