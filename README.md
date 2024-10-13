@@ -41,4 +41,4 @@ BigBacter also requires a taxon-specific PopPUNK database (pre-made databases ca
 
 ### Checkout the [wiki](https://github.com/DOH-JDJ0303/bigbacter-nf/wiki) to learn more!
 
-> BigBacter was originally created by Jared Johnson for the Washington State Department of Health. See a full list of contributors [here]().
+> BigBacter was originally created by Jared Johnson for the Washington State Department of Health. See a full list of contributors [here](https://github.com/DOH-JDJ0303/bigbacter-nf/blob/main/docs/acknowledgements.md).
