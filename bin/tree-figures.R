@@ -31,13 +31,14 @@ tree$tip.label <- str_remove_all(tree$tip.label, pattern = "'")
 # set negative branch lengths to zero
 if(sum(tree$edge.length < 0) > 0){
   tree$edge.length[tree$edge.length < 0] <- 0
-  write.tree(tree, paste0(filebase,".final.nwk"))
 }
 # determine if tree can be rooted
 n_iso <- tree$tip.label %>% length()
 if(n_iso > 3){
   tree <- midpoint(tree)
 }
+# save tree - this will be replaced if ML
+write.tree(tree, paste0(filebase,".final.nwk"))
 
 #---- CREATE METADATA----#
 # load list of new samples
