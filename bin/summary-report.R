@@ -1,5 +1,10 @@
 #!/usr/bin/env Rscript
 
+version <- "1.0"
+
+# summary-report.R
+# Author: Jared Johnson, jared.johnson@doh.wa.gov
+
 # load packages
 library(tidyverse)
 

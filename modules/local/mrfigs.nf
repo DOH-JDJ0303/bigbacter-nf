@@ -15,10 +15,8 @@ process MRFIGS {
     prefix = "${timestamp}-${taxa}-${cluster}.${source}"
     script:
     """
-    # combine tree partition data with the run summary
-    mrfigs-format.R ${metadata} ${summary} ${summary.simpleName}.csv
     # create the microreact figures
-    mrfigs.sh ${template} ${prefix} ${summary.simpleName}.csv ${snp_mat} ${snp_tree} ${acc_mat}
+    mrfigs.R ${template} ${metadata} ${summary} ${snp_tree} ${snp_mat} ${acc_mat} ${prefix}
     """
 }
 

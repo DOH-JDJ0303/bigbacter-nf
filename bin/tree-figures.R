@@ -1,5 +1,10 @@
 #!/usr/bin/env Rscript
 
+version <- "1.0"
+
+# tree-figures.R
+# Author: Jared Johnson, jared.johnson@doh.wa.gov
+
 #---- LOAD PACKAGES ----#
 library(tidyverse)
 library(phangorn)

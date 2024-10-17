@@ -5,7 +5,7 @@ FROM ubuntu:jammy
 LABEL base.image="ubuntu:jammy"
 LABEL dockerfile.version="2"
 LABEL software="BigBacter"
-LABEL software.version="v1.0"
+LABEL software.version="v1.0.0"
 LABEL description="Basic Linux for Running BigBacter Scripts"
 LABEL website="https://github.com/DOH-JDJ0303/bigbacter-nf"
 LABEL license="Apache 2.0"
@@ -52,5 +52,5 @@ RUN apt-get update && apt-get -y --no-install-recommends install \
     rm -rf /var/lib/apt/lists/*
     
 # required R packages
-RUN R -e "install.packages(c('tidyverse', 'phangorn','BiocManager', 'remotes'), repos='https://cran.rstudio.com/')"
+RUN R -e "install.packages(c('tidyverse', 'phangorn','BiocManager', 'remotes', 'rjson'), repos='https://cran.rstudio.com/')"
 RUN R -e "remotes::install_github('YuLab-SMU/treeio'); remotes::install_github('YuLab-SMU/ggtree')"

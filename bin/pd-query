@@ -1,5 +1,10 @@
 #!/usr/bin/env Rscript
 
+version <- "1.0"
+
+# pd-query
+# Author: Jared Johnson, jared.johnson@doh.wa.gov
+
 #---- LOAD PACKAGES ----#
 if(!require(tidyverse)){
     install.packages("tidyverse")

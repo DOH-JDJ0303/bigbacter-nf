@@ -1,3 +1,10 @@
+#!/bin/bash
+
+version="1.0"
+
+# get-subsampling-rate.sh
+# Author: Jared Johnson, jared.johnson@doh.wa.gov
+
 # this is only necessary because Nextflow doesn't like '\n'
 # inputs
 reads=$1
