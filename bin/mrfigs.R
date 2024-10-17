@@ -53,7 +53,7 @@ write.table(x=df.summary, quote = F, row.names = F, sep = ",", file = meta.file.
 ## load template
 mr.file <- fromJSON(file = mr_template)
 ## update project name
-mr.file$metadata$name <- prefix
+mr.file$meta$name <- prefix
 ## update metadata
 mr.file$files$metadata$name <- meta.file.name
 mr.file$files$metadata$blob <- readChar(meta.file.name, file.info(meta.file.name)$size)
