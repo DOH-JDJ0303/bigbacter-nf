@@ -6,7 +6,7 @@ process PUSH_CLUSTER_FILES {
     tuple val(taxa), val(cluster), path(ref, stageAs: "ref.fa.gz"), path(new_snippy), path(assembly)
 
     output:
-    tuple path("*.tar.gz"), path("*_T*.fa.gz"), path('ref.fa.gz'), emit: cluster_files
+    tuple path("*.tar.gz", includeInputs: true), path("*_T*.fa.gz", includeInputs: true), path('ref.fa.gz', includeInputs: true), emit: cluster_files
     
     when:
     task.ext.when == null || task.ext.when
