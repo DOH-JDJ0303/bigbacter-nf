@@ -41,7 +41,22 @@ process POPPUNK_ASSIGN {
         --query qfile.txt \
         --output !{timestamp} \
         --threads !{task.cpus} \
-        --write-reference
+        --max-zero-dist !{params.pp_maxzerodist} \
+        --max-merge !{params.pp_maxmerge} \
+        --max-a-dist !{params.pp_maxadist} \
+        --max-pi-dist !{params.pp_maxpidist} \
+        !{params.pp_runqc ? '--run-qc' : ''}
+
+
+    # check that all samples made it into the new database
+    for SAMPLE in $(cat qfile.txt | cut -f 1)
+    do
+        STATUS=$(cat !{timestamp}/!{timestamp}_clusters.csv | awk -v FS=',' -v sample="${SAMPLE}" '$1==sample {print "true"}')
+        if [[ $STATUS != "true" ]]
+        then
+            echo "ERROR: $SAMPLE was not found in !{timestamp}/!{timestamp}_clusters.csv. This is likely due to the sample failing the PopPUNK QC. Try running BigBacter with '--pp_runqc false' to bypass this." && exit 1
+        fi
+    done
 
     # compress new database (output) & remove old database
     tar -czvf !{timestamp}.tar.gz !{timestamp} && rm -r ${db}*

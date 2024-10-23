@@ -26,7 +26,7 @@
                     "fa_icon": "fas fa-file-csv"
                 },
                 "ncbi": {
-                    "type": "string", 
+                    "type": "string",
                     "format": "file-path",
                     "mimetype": "text/csv",
                     "pattern": "^\\S+\\.csv$",
@@ -74,6 +74,39 @@
                     "default": 300,
                     "fa_icon": "fas fa-chart-pie",
                     "description": "Minimum contig length retained in assembly."
+                }
+            }
+        },
+        "qc_clustering": {
+            "title": "QC: Clustering",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
+                "pp_runqc": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether PopPUNK QC should be performed."
+                },
+                "pp_maxzerodist": {
+                    "type": "number",
+                    "default": 0.05,
+                    "description": "Maximum proportion of zero distances to permit for PopPUNK"
+                },
+                "pp_maxmerge": {
+                    "type": "number",
+                    "default": -1,
+                    "description": "Maximum number of cluster merges a sample can cause for PopPUNK"
+                },
+                "pp_maxadist": {
+                    "type": "number",
+                    "default": 0.5,
+                    "description": "Maximum accessory distance to permit for PopPUNK"
+                },
+                "pp_maxpidist": {
+                    "type": "number",
+                    "default": 0.1,
+                    "description": "Maximum core distance to permit for PopPUNK"
                 }
             }
         },
@@ -398,6 +431,9 @@
         },
         {
             "$ref": "#/definitions/qc_reads_assembly"
+        },
+        {
+            "$ref": "#/definitions/qc_clustering"
         },
         {
             "$ref": "#/definitions/qc_variant_calling"
