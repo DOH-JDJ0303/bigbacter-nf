@@ -27,13 +27,6 @@ def get_ppdb ( taxa ) {
     return pp_db
 }
 
-// Function for determining if a cluster is new or old
-def get_status ( taxa, cluster ) {
-    c_path = file(params.db).resolve(taxa).resolve("clusters").resolve(cluster)
-    status = c_path.exists() ? true : false
-    return status        
-}
-
 // get list of isolates in each cluster for a taxa
 def db_taxa_clusters ( taxa , timestamp ) {
     // determine path to taxa database
@@ -63,7 +56,7 @@ def db_taxa_clusters ( taxa , timestamp ) {
 */
 workflow CLUSTER {
     take:
-    manifest   // channel: [ val(sample), val(taxa), file(assembly), file(fastq_1), file(fastq_2) ]
+    manifest   // channel: [ val(sample), val(taxa), file(assembly) ]
     timestamp  // channel: val(timestamp)
 
     main:
@@ -75,8 +68,8 @@ workflow CLUSTER {
     */
     // Determine the most recent PopPUNK database for each species and then group by species
     manifest
-        .map { sample, taxa, assembly, fastq_1, fastq_2 -> [taxa, sample, assembly] }
-        .groupTuple()
+        .map{ sample, taxa, assembly -> [ taxa, sample, assembly ] }
+        .groupTuple(by: 0)
         .map {taxa, sample, assembly -> [taxa, sample, assembly, get_ppdb(taxa)]}
         .set { pp_grouped }
 
@@ -107,7 +100,7 @@ workflow CLUSTER {
         .splitCsv(header: true, elem: 1)
         .transpose()
         .map{ taxa, results -> [ results.Taxon, taxa, results.Cluster ] }
-        .join(manifest.map { sample, taxa, assembly, fastq_1, fastq_2  -> [ sample, taxa ]}, by: [0,1])
+        .join(manifest.map { sample, taxa, assembly  -> [ sample, taxa ]}, by: [0,1])
         .map{ sample, taxa, cluster -> [ sample, cluster, taxa ] }
         .set {cluster_results}
     
@@ -121,7 +114,7 @@ workflow CLUSTER {
     if ( params.resolve_merged ) {
         // get list of isolates that belong to each cluster in the BiBacter database
         manifest
-            .map{ sample, taxa, assembly, fastq_1, fastq_2 -> taxa }
+            .map{ sample, taxa, assembly -> taxa }
             .combine(timestamp)
             .distinct()
             .map{ taxa, timestamp -> [ taxa, db_taxa_clusters(taxa, timestamp) ] }
@@ -131,9 +124,9 @@ workflow CLUSTER {
         POPPUNK_ASSIGN
             .out
             .merged_clusters
-            .map { taxa, results -> [ results ] }
+            .map { taxa, results -> results }
             .splitCsv(header: true)
-            .map { tuple(it.taxa.get(0), it.merged_cluster.get(0), it.cluster.get(0), get_status(it.taxa.get(0), it.cluster.get(0).padLeft(5, "0"))) }
+            .map { it -> [ it.taxa, it.merged_cluster, it.cluster, file(params.db).resolve(it.taxa).resolve("clusters").resolve(it.cluster.padLeft(5, "0")).exists() ? true : false ] }
             .set{ merged_clusters }
         
         // make sure that this merge didn't occur on two or more unmerged clusters that have not been observed yet by BigBacter
@@ -198,12 +191,12 @@ workflow CLUSTER {
     */
     // Add padding to cluster numbers and determine if they are new or old
     cluster_results
-        .map { sample, taxa, cluster -> [sample, taxa, cluster.padLeft(5, "0"), get_status(taxa, cluster.padLeft(5, "0"))]}
-        .set { sample_cluster_status }
+        .map { sample, taxa, cluster -> [sample, cluster.padLeft(5, "0") ]}
+        .set { sample_clusters }
 
     emit:
-    sample_cluster_status = sample_cluster_status            // channel: [ val(sample), val(taxa), val(cluster), val(new_status), val(merge_status) ]
-    new_pp_db             = POPPUNK_ASSIGN.out.new_pp_db     // channel: [ val(taxa), path(new_pp_db)]
-    core_acc_dist         = POPPUNK_ASSIGN.out.core_acc_dist // channel: [ val(taxa), path(dist) ]
-    versions              = ch_versions                      // channel: [ versions.yml ]
+    sample_clusters = sample_clusters                  // channel: [ val(sample), val(cluster) ]
+    new_pp_db       = POPPUNK_ASSIGN.out.new_pp_db     // channel: [ val(taxa), path(new_pp_db)]
+    core_acc_dist   = POPPUNK_ASSIGN.out.core_acc_dist // channel: [ val(taxa), path(dist) ]
+    versions        = ch_versions                      // channel: [ versions.yml ]
 }

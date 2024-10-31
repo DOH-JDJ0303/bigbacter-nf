@@ -19,6 +19,10 @@ snp_file <- args[5]
 acc_file <- args[6]
 prefix <- args[7]
 
+# account for missing accessory genome matrix
+if(!file.exists(acc_file)){acc_file <- 'empty.csv'; write.csv(data.frame(empty = "no data"), acc_file)}
+
+
 # function for converting comma-separated lists into colon-separated lists for Microreact
 comma2colon <- function(str) {
     str <- str %>%

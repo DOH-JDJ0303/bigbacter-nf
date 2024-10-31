@@ -8,11 +8,11 @@ process FASTP {
         'quay.io/biocontainers/fastp:0.23.4--h5f740d0_0' }"
 
     input:
-    tuple val(sample), val(taxa), path(fastq_1), path(fastq_2)
+    tuple val(sample), path(fastq_1), path(fastq_2)
     val timestamp
 
     output:
-    tuple val(sample), val(taxa), path("${prefix}_1.fastp.fastq.gz"), path("${prefix}_2.fastp.fastq.gz"), emit: reads
+    tuple val(sample), path("${prefix}_1.fastp.fastq.gz"), path("${prefix}_2.fastp.fastq.gz"), emit: reads
     path "versions.yml",                                                                       emit: versions
 
     when:

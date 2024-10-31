@@ -37,17 +37,12 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
-include { INPUT_CHECK      } from '../subworkflows/local/input_check'
+include { PREPARE_INPUT    } from '../subworkflows/local/prepare_inputs'
 include { CLUSTER          } from '../subworkflows/local/cluster'
 include { CORE             } from '../subworkflows/local/core'
 include { ACCESSORY        } from '../subworkflows/local/accessory'
 include { PUSH_FILES       } from '../subworkflows/local/push_files'
 
-include { NCBI_DATASETS    } from '../modules/local/ncbi-datasets'
-include { FASTERQDUMP      } from '../modules/local/fasterqdump'
-include { FASTP            } from '../modules/local/fastp'
-include { SEQTK_SEQ        } from '../modules/local/seqtk_seq'
-include { FORMAT_ASSEMBLY  } from '../modules/local/format-input'
 include { MRFIGS           } from '../modules/local/mrfigs'
 include { SUMMARY_TABLE    } from '../modules/local/summary-tables'
 include { COMBINED_SUMMARY } from '../modules/local/combined-summary'
@@ -193,154 +188,53 @@ workflow BIGBACTER {
     */
     // MODULE: Get epoch timestamp
     TIMESTAMP()
-        .set { timestamp }
+        .set { ch_timestamp }
 
     // provide custom run ID that replaces the timestamp - set up this way to avoid being a value channel 
-    params.run_id ? timestamp.map{ timestamp -> params.run_id }.set{ timestamp } : timestamp
+    params.run_id ? timestamp.map{ timestamp -> params.run_id }.set{ ch_timestamp } : ch_timestamp
 
     /*
     =============================================================================================================================
-        CHECK SAMPLESHEET
+        PREPARE INPUT
     =============================================================================================================================
     */
-    if (params.input != "${projectDir}/assets/samplesheet.csv"){
-        // Create input channel 
-        ch_input = file(params.input)
-
-        // SUBWORKFLOW: Read in samplesheet, validate and stage input files
-        INPUT_CHECK (
-            ch_input,
-            timestamp
-        )
-        ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
-        // The 'single_end' field is removed because samples must be paired end.
-        INPUT_CHECK
-            .out
-            .manifest
-            .map{ tuple(it.sample, it.taxa, it.assembly, it.fastq_1, it.fastq_2) }
-            .set{manifest}
-    }
-
-    /*
-    =============================================================================================================================
-        PREPARE INPUTS FROM NCBI
-    =============================================================================================================================
-    */
-    if (params.ncbi){
-        // Load NCBI samplesheet
-        Channel
-            .fromPath(params.ncbi)
-            .splitCsv(header: true)
-            .map{ tuple(it.sample, it.taxa, it.assembly, it.sra) }
-            .set{ ch_ncbi }
-        // MODULE: Download genome assemblies from NCBI
-        NCBI_DATASETS(
-            ch_ncbi
-        )
-        ch_versions = ch_versions.mix(NCBI_DATASETS.out.versions)
-
-        // MODULE: Download reads assemblies from NCBI
-        FASTERQDUMP(
-            ch_ncbi
-        )
-        ch_versions = ch_versions.mix(FASTERQDUMP.out.versions)
-
-        // Added samples to the manifest channel
-        ch_ncbi
-            .map{ sample, taxa, assembly, sra -> [ sample, taxa ] }
-            .join(NCBI_DATASETS.out.assembly, by: [0, 1])
-            .join(FASTERQDUMP.out.reads, by: [0, 1])
-            .concat(manifest)
-            .set{ manifest }
-    }
-
-    // set validated manifest path - easier ways to do this but this works with Seqera Cloud
-    manifest
-        .map{ sample, taxa, assembly, fastq_1, fastq_2 -> sample+","+taxa+","+assembly+","+fastq_1+","+fastq_2 }
-        .set{samplesheetlines}
-    Channel.of("sample,taxa,assembly,fastq_1,fastq_2")
-        .concat(samplesheetlines)
-        .collectFile(name: "samplesheet-collected.csv", sort: 'index', newLine: true)
-        .set{ manifest_path }
-
-    /*
-    =============================================================================================================================
-        QUALITY FILTER INPUTS
-    =============================================================================================================================
-    */
-    if(params.assembly_qc){
-        // MODULE: Run seqtk seq on assembly
-        SEQTK_SEQ(
-            manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa, assembly ] },
-            timestamp
-        )
-        ch_versions = ch_versions.mix(SEQTK_SEQ.out.versions)
-
-        // Add quality filter datasets back to manifest
-        manifest
-            .map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa, fastq_1, fastq_2 ] }
-            .join(SEQTK_SEQ.out.assembly, by: [0, 1])
-            .map{ sample, taxa, fastq_1, fastq_2, assembly -> [ sample, taxa, assembly, fastq_1, fastq_2 ] }
-            .set{ manifest }
-    }
-    
-
-    // MODULE: Run fastp on reads
-    if (params.read_qc){
-        FASTP(
-            manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa, fastq_1, fastq_2 ] },
-            timestamp
-        )
-        ch_versions = ch_versions.mix(FASTP.out.versions)
-        
-        // Add quality filter datasets back to manifest
-        manifest
-            .map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa, assembly ] }
-            .join(FASTP.out.reads, by: [0,1])
-            .set{ manifest }
-    }
-
-    /*
-    =============================================================================================================================
-        FORMAT INPUTS
-        - this occurs after all inputs sources have been combined (samplesheet & NCBI)
-    =============================================================================================================================
-    */
-    // MODULE: Gzip assembly (if needed) and rename to format "${sample}.fa.gz"
-    FORMAT_ASSEMBLY (
-        manifest.map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa, assembly ] }
+    PREPARE_INPUT(
+        file(params.input),
+        ch_timestamp
     )
-    // Add formatted assembly back to manifest
-    manifest
-        .map{ sample, taxa, assembly, fastq_1, fastq_2 -> [ sample, taxa, fastq_1, fastq_2 ] }
-        .join(FORMAT_ASSEMBLY.out.assembly, by: [0,1])
-        .map{ sample, taxa, fastq_1, fastq_2, assembly -> [ sample, taxa, assembly, fastq_1, fastq_2 ] }
+    // Create manifest channels
+    PREPARE_INPUT.out.manifest.set{ ch_manifest }
+    PREPARE_INPUT.out.manifest_path.set{ ch_manifest_path }
 
     /*
     =============================================================================================================================
         ASSIGN CLUSTERS
+        - clusters assigned by PopPUNK when not manually provided in the samplesheet
     =============================================================================================================================
     */
     // SUBWORKFLOW: Assign PopPUNK clusters
     CLUSTER(
-        manifest,
-        timestamp
+        ch_manifest.filter{ it -> ! it.cluster }.map{ it -> [ it.sample, it.taxa, it.assembly ] },
+        ch_timestamp
     )
     ch_versions = ch_versions.mix(CLUSTER.out.versions)
-
-    // Update manifest with cluster and status info
-    manifest.join(CLUSTER.out.sample_cluster_status, by: [0,1]).set { manifest }
+    // Add cluster info back and combine with manual clusters
+    ch_manifest
+        .filter{ it -> it.cluster }
+        .map{ it -> [ it.sample, it.cluster ] }
+        .concat(CLUSTER.out.sample_clusters)
+        .set{ ch_sample_clusters }
 
     /*
     =============================================================================================================================
         CORE GENOME ANALYSIS
     =============================================================================================================================
     */
-    // SUBWORKFLOW: Core genome analysis
+    //// SUBWORKFLOW: Core genome analysis
     CORE(
-        manifest,
-        manifest_path, 
-        timestamp
+        ch_manifest.map{ it -> [ it.sample, it.taxa, it.assembly, it.fastq_1, it.fastq_2 ] }.join( ch_sample_clusters, by: 0 ),
+        ch_manifest_path, 
+        ch_timestamp
     )
     ch_versions = ch_versions.mix(CORE.out.versions)
 
@@ -353,8 +247,8 @@ workflow BIGBACTER {
     ACCESSORY(
         CLUSTER.out.core_acc_dist,
         CORE.out.tree,
-        manifest_path,
-        timestamp
+        ch_manifest_path,
+        ch_timestamp
     )
     ch_versions = ch_versions.mix(ACCESSORY.out.versions)
 
@@ -370,35 +264,36 @@ workflow BIGBACTER {
         .map{ taxa, cluster, source, dist -> [ taxa, cluster, dist ] }
         .groupTuple(by: [0,1])
         .join(CORE.out.stats, by: [0,1])
-        .set{core_summary}
+        .set{ch_core_summary}
 
     // MODULE: Make individual summary tables
     SUMMARY_TABLE(
-        core_summary.combine(manifest_path),
-        timestamp
+        ch_core_summary.combine(ch_manifest_path),
+        ch_timestamp
     )
 
     // MODULE: Combine summary tables
     COMBINED_SUMMARY(
        SUMMARY_TABLE.out.summary.map{taxa, cluster, summary -> [ summary ]}.collect(),
-       manifest_path,
-       timestamp
+       ch_manifest_path,
+       ch_timestamp
    )
 
     // Consolidate results for Microreact
+    // Accessory genome
     CORE
         .out
         .meta
-        .join(CORE.out.dist, by: [0,1,2])
-        .join(CORE.out.tree, by: [0,1,2])
-        .combine(ACCESSORY.out.dist.map{ taxa, cluster, source, dist -> [ taxa, cluster, dist] }, by: [0,1])
-        .combine(SUMMARY_TABLE.out.summary, by: [0,1])
+        .join( CORE.out.dist, by: [0,1,2] )
+        .join( CORE.out.tree, by: [0,1,2] )
+        .combine( ACCESSORY.out.dist.map{ taxa, cluster, source, dist -> [ taxa, cluster, dist ] }.concat( ch_manifest.filter{ it -> it.cluster }.map{ it -> [ it.taxa, it.cluster, [] ] } ), by: [0,1] )
+        .combine( SUMMARY_TABLE.out.summary, by: [0,1] )
         .set{ ch_microreact }
     // MODULE: Create Microreact figures
     MRFIGS (
         ch_microreact,
         file("$projectDir/assets/microreact.json", checkIfExists: true),
-        timestamp        
+        ch_timestamp
     )
 
     /*
@@ -413,13 +308,19 @@ workflow BIGBACTER {
         .set{ taxa_files }
 
     // Consolidate cluster-specific files
+    ch_manifest
+        .map{ it -> [ it.sample, it.taxa, it.assembly ] }
+        .combine( ch_sample_clusters, by: 0 )
+        .map{ sample, taxa, assembly, cluster -> [ taxa, cluster, assembly ] }
+        .groupTuple(by: [0,1])
+        .set{ ch_cluster_assemblies }
     CORE
         .out
         .snp_files
         .map{ taxa, cluster, ref, new_snippy, old_snippy -> [ taxa, cluster, ref, new_snippy ] }
-        .join(manifest.map{ sample, taxa, assembly, fastq_1, fastq_2, cluster, status -> [ taxa, cluster, assembly ] }.groupTuple(by: [0,1]), by: [0,1])
+        .join(ch_cluster_assemblies, by: [0,1])
         .set{ cluster_files }
-    
+
     // if push is 'true'
     ch_wait = cluster_files.concat(taxa_files).collect().flatten().last() // force pipeline to wait till after all new database files have been created
     if(params.push){
@@ -432,7 +333,7 @@ workflow BIGBACTER {
     }
 
     // Collect database info - optional
-    if (params.db_info){ timestamp.combine(ch_wait).map{ timestamp, wait_file -> db_info(params.db, params.outdir, timestamp, wait_file) } }
+    if (params.db_info){ ch_timestamp.combine(ch_wait).map{ ch_timestamp, wait_file -> db_info(params.db, params.outdir, ch_timestamp, wait_file) } }
 
     /*
     =============================================================================================================================
@@ -441,7 +342,7 @@ workflow BIGBACTER {
     */
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml'),
-        timestamp
+        ch_timestamp
     )
 
     //
@@ -463,7 +364,7 @@ workflow BIGBACTER {
         ch_multiqc_config.toList(),
         ch_multiqc_custom_config.toList(),
         ch_multiqc_logo.toList(),
-        timestamp
+        ch_timestamp
     )
     multiqc_report = MULTIQC.out.report.toList()
 }

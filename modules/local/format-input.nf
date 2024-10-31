@@ -3,10 +3,10 @@ process FORMAT_ASSEMBLY {
     label 'process_low'
 
     input:
-    tuple val(sample), val(taxa), path(assembly)
+    tuple val(sample), path(assembly)
 
     output:
-    tuple val(sample), val(taxa), path("${sample}.fa.gz", includeInputs: true), emit: assembly
+    tuple val(sample), path("${sample}.fa.gz", includeInputs: true), emit: assembly
 
     when:
     task.ext.when == null || task.ext.when

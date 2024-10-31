@@ -49,10 +49,10 @@ def create_sample_channel(LinkedHashMap row) {
     if (!file(row.fastq_2).exists()) {
         exit 1, "ERROR: Please check input samplesheet -> Read 2 FastQ file does not exist!\n${row.fastq_2}"
     }
-
+    
     // add path(s) of the fastq file(s) to the meta map
     def sample_meta = []
-    sample_meta = [ meta, [ row.taxa, file(row.assembly), file(row.fastq_1), file(row.fastq_2) ] ]
+    sample_meta = [ meta, [ row.taxa, file(row.assembly), file(row.fastq_1), file(row.fastq_2), it.cluster ? it.cluster : null ] ]
     
     return sample_meta
 }

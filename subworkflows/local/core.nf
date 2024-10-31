@@ -31,7 +31,7 @@ def count_alignments ( aln_file ) {
 */
 workflow CORE {
     take:
-    manifest      // channel: [ val(sample), val(taxa), path(assembly), path(fastq_1), path(fastq_2), val(cluster), val(status)]
+    manifest      // channel: [ val(sample), val(taxa), path(assembly), path(fastq_1), path(fastq_2), val(cluster) ]
     manifest_file // channel: [ val(samplesheet.valid.csv) ]
     timestamp     // channel: val(timestamp)
 
@@ -42,27 +42,27 @@ workflow CORE {
         DETERMINE REFERENCE GENOME
     =============================================================================================================================
     */
-    // Group manifets by taxa and cluster
+    // Group by taxa and cluster
     manifest
-        .map{ sample, taxa, assembly, fastq_1, fastq_2, cluster, status -> [taxa, cluster, assembly, status]}
+        .map{ sample, taxa, assembly, fastq_1, fastq_2, cluster -> [ taxa, cluster, assembly ]}
         .groupTuple(by: [0,1])
-        .map{ taxa, cluster, assembly, status -> [taxa, cluster, assembly, status.get(0)] }
+        .map{ taxa, cluster, assembly -> [ taxa, cluster, assembly, file(params.db).resolve(taxa).resolve("clusters").resolve(cluster).exists() ? true : false ] }
         .set { clust_grps }
     // New clusters - select first assembly
     clust_grps
         .filter{ taxa, cluster, assembly, status -> ! status }
-        .map{ taxa, cluster, assembly, status -> [taxa, cluster, assembly.first()] }
+        .map{ taxa, cluster, assembly, status -> [ taxa, cluster, assembly.first(), status ] }
         .set{ clust_grp_new }
     // Old clusters - resolve path to reference in BigBacter database
     clust_grps
         .filter{ taxa, cluster, assembly, status -> status }
-        .map{ taxa, cluster, assembly, status -> [taxa, cluster, file(params.db) / taxa / "clusters" / cluster / "ref/ref.fa.gz" ] }
+        .map{ taxa, cluster, assembly, status -> [ taxa, cluster, file(params.db) / taxa / "clusters" / cluster / "ref/ref.fa.gz", status ] }
         .set{ clust_grps_old }
     // Combine new and old clusters into single channel and add back to reference
     manifest
-        .map { sample, taxa, assembly, fastq_1, fastq_2, cluster, status -> [taxa, cluster, sample, assembly, fastq_1, fastq_2, status] }
-        .combine(clust_grp_new.concat(clust_grps_old), by: [0,1])
-        .map { taxa, cluster, sample, assembly, fastq_1, fastq_2, status, ref -> [sample, taxa, assembly, fastq_1, fastq_2, cluster, status, ref] }
+        .map { sample, taxa, assembly, fastq_1, fastq_2, cluster -> [ taxa, cluster, sample, assembly, fastq_1, fastq_2 ] }
+        .combine( clust_grp_new.concat( clust_grps_old ), by: [0,1] )
+        .map { taxa, cluster, sample, assembly, fastq_1, fastq_2, ref, status -> [sample, taxa, assembly, fastq_1, fastq_2, cluster, status, ref] }
         .set{ manifest }
 
     /* 

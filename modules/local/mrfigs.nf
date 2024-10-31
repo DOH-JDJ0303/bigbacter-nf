@@ -16,7 +16,7 @@ process MRFIGS {
     script:
     """
     # create the microreact figures
-    mrfigs.R ${template} ${metadata} ${summary} ${snp_tree} ${snp_mat} ${acc_mat} ${prefix}
+    mrfigs.R "${template}" "${metadata}" "${summary}" "${snp_tree}" "${snp_mat}" "${acc_mat}" "${prefix}"
     """
 }
 
