@@ -4,11 +4,7 @@
 
 include { SNIPPY_SINGLE } from '../../modules/local/snippy'
 include { SNIPPY_CORE   } from '../../modules/local/snippy'
-include { BAKTA_BAKTADBDOWNLOAD } from '../../modules/local/bakta'
-include { BAKTA_BAKTA } from '../../modules/local/bakta'
-// include { BAKTA_BAKTA   } from '../../modules/local/gubbins'
 include { GUBBINS       } from '../../modules/local/gubbins'
-include { GUBBINS_VIZ   } from '../../modules/local/gubbins'
 include { SNP_DISTS     } from '../../modules/local/snp-dists'
 include { IQTREE        } from '../../modules/local/iqtree'
 include { RAPIDNJ       } from '../../modules/local/rapidnj'
@@ -28,21 +24,6 @@ def count_alignments ( aln_file ) {
     return total
 }
 
-// Function for determining if a annotated reference file exists
-def get_annotation_status ( taxa, cluster ) {
-    c_path = file(params.db).resolve(taxa).resolve("clusters").resolve(cluster).resolve("annotated_ref")
-    status = c_path.exists() ? true : false
-    return status        
-}
-def get_ref ( taxa, cluster ) {
-    c_path = file(params.db).resolve(taxa).resolve("clusters").resolve(cluster).resolve("reference").resolve("ref.fa.gz")
-    return c_path       
-}
-
-// def taxa_cluster_string ( taxa, cluster ) {
-//     string = val(taxa) + ": " cluster + "\n"
-//     return string      
-// }
 /*
 =============================================================================================================================
     SUBWORKFLOW
@@ -147,66 +128,11 @@ workflow CORE {
 
        /*
     =============================================================================================================================
-        ANNOTATE REFERENCE GENOMES
-        - only ran for active clusters without annotated reference genonome
-    =============================================================================================================================
-    */
-
-    aln_w_metrics
-        .filter{ taxa, cluster, core_aln, clean_aln, const_sites, count -> count <= params.max_ml }
-        .map{ taxa, cluster, core_aln, clean_aln, const_sites, count -> [ taxa, cluster, get_ref(taxa, cluster), get_annotation_status(taxa, cluster) ] }
-        .filter{ taxa, cluster, ref, status -> !status }
-        .map{ taxa, cluster, ref, status -> [ taxa, cluster, ref]}
-        .set{annot_set}
-    
-    annot_set //.view()
-        .map{ taxa, cluster, ref ->  "$taxa: $cluster" }
-        .collect()
-        .set{bakta_db_set}
-
-    // MODULE: bakta
-    // annot_set //.view()
-    //     .map{ taxa, cluster, ref -> [taxa, cluster, ref]}
-    //     .view()
-
-    BAKTA_BAKTADBDOWNLOAD (
-        bakta_db_set
-        )
-    //BAKTA_BAKTADBDOWNLOAD.out.db.view()
-    annot_set.unique { it[2] }
-        .map{ taxa, cluster, ref -> [ taxa, cluster, ref]}.view()
-    BAKTA_BAKTA (
-        annot_set
-            .unique { it[2] }
-            .map{ taxa, cluster, ref -> [ taxa, cluster, file(params.db) / taxa / "clusters" / cluster / "ref/ref.fa.gz" ]},//,//bakta_db_set.split
-        BAKTA_BAKTADBDOWNLOAD.out.bakta_db
-        
-        )
-       /*
-    =============================================================================================================================
         IDENTIFY RECOMBINANT REGIONS
         - only ran for clusters smaller than '--max_ml'
         - alignments without SNPs are excluded
     =============================================================================================================================
     */
-    // BAKTA(
-    //     aln_w_metrics.filter{ taxa, cluster, core_aln, clean_aln, const_sites, count -> count <= params.max_ml }.map{ taxa, cluster, core_aln, clean_aln, const_sites, count -> [ taxa, cluster, clean_aln, const_sites, count ] },
-    //     timestamp
-    // )
-    // aln_w_metrics
-    //     .filter{ taxa, cluster, core_aln, clean_aln, const_sites, count -> count <= params.max_ml }
-    //     .map{ taxa, cluster, core_aln, clean_aln, const_sites, count -> [ taxa, cluster, get_ref(taxa, cluster), get_annotation_status(taxa, cluster) ] }
-    //     .view() //.set{annot_status}
-
-
-        //.view()
-
-    // BAKTA(
-    //     annot_status
-    //         .filter{ taxa, cluster, ref, status -> status == false }
-    //         .map{ taxa, cluster, ref, status, -> [ taxa, cluster, ref] },
-    //         timestamp
-    // )
     // MODULE: Run Gubbins
     GUBBINS(
         aln_w_metrics.filter{ taxa, cluster, core_aln, clean_aln, const_sites, count -> count <= params.max_ml }.map{ taxa, cluster, core_aln, clean_aln, const_sites, count -> [ taxa, cluster, clean_aln, const_sites, count ] },
@@ -214,30 +140,6 @@ workflow CORE {
     )
     ch_versions = ch_versions.mix(GUBBINS.out.versions)
 
-
-    
-    // GUBBINS
-    //     .out
-    //     .gff
-    //     .map { taxa, cluster, gff -> [taxa, cluster, gff] }
-    //     .join(GUBBINS.out.tre.map { taxa, cluster, tre -> [taxa, cluster, tre] }, by: [0,1])//.unique()
-    //     .view()
-        //.flatten()
-        
-
-    GUBBINS
-        .out
-        .gff
-        .map { taxa, cluster, gff -> [taxa, cluster, gff] }
-        .combine(GUBBINS.out.tre.map { taxa, cluster, tre -> [taxa, cluster, tre] }, by: [0,1])
-        .set {gubbins_viz}
-  // TODO
-  // Test with multiple sampels from the Same taxa, and multiple samples from the same cluster
-    GUBBINS_VIZ(
-        gubbins_viz,
-        timestamp
-    )
-    //GUBBINS(
     // Add Gubbins alignments to channel
     aln_w_metrics
         .map{ taxa, cluster, core_aln, clean_aln, const_sites, count -> [ taxa, cluster, core_aln, const_sites, count, "snippy" ]} // no longer need the full alignments
@@ -368,11 +270,9 @@ workflow CORE {
         .set{ all_stats }
 
     emit:
-    snp_files = snp_files              // channel: [ val(taxa), val(cluster), path(ref), path(new_snippy), path(old_snippy) ]
-    tree      = TREE_FIGURE.out.tree   // channel: [ val(taxa), val(cluster), val(source), path(tree) ]
-    dist      = DIST_MAT.out.dist_wide // channel: [ val(taxa), val(cluster), val(source), path(dist) ]
-    meta      = TREE_FIGURE.out.meta      // channel: [ val(taxa), val(cluster), val(source), path(meta) ]
-    stats     = all_stats              // channel: [ val(taxa), val(cluster), path(stats) ]
-    versions  = ch_versions            // channel: [ versions.yml ]
-    gubbins_viz = GUBBINS_VIZ.out.viz
+    snp_files = snp_files   // channel: [ val(taxa), val(cluster), path(ref), path(new_snippy), path(old_snippy) ]
+    tree      = all_trees   // channel: [ val(taxa), val(cluster), path(tree), val(source), val(type), val(method), path(stats) ]
+    dist      = all_dists   // channel: [ val(taxa), val(cluster), path(dist), val(source) ]
+    stats     = all_stats   // channel: [ val(taxa), val(cluster), path(stats) ]
+    versions  = ch_versions // channel: [ versions.yml ]
 }
