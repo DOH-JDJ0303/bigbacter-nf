@@ -8,12 +8,12 @@ process SEQTK_SEQ {
         'quay.io/biocontainers/seqtk:1.3--h5bf99c6_3' }"
 
     input:
-    tuple val(sample), val(taxa), path(assembly)
+    tuple val(sample), path(assembly)
     val timestamp
 
     output:
-    tuple val(sample), val(taxa), path("${prefix}.fa.gz"), emit: assembly
-    path "versions.yml",                                   emit: versions
+    tuple val(sample), path("${prefix}.fa.gz"), emit: assembly
+    path "versions.yml",                        emit: versions
 
     when:
     task.ext.when == null || task.ext.when

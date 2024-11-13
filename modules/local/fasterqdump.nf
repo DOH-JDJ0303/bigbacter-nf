@@ -8,10 +8,10 @@ process FASTERQDUMP {
         'quay.io/biocontainers/mulled-v2-5f89fe0cd045cb1d615630b9261a1d17943a9b6a:2f4a4c900edd6801ff0068c2b3048b4459d119eb-0' }"
 
     input:
-    tuple val(sample), val(taxa), val(assembly), val(sra)
+    tuple val(sample), val(sra)
 
     output:
-    tuple val(sample), val(taxa), path('*_1.fastq.gz'), path('*_2.fastq.gz'), emit: reads
+    tuple val(sample), path('*_1.fastq.gz'), path('*_2.fastq.gz'), emit: reads
     path "versions.yml",                                           emit: versions
 
     when:

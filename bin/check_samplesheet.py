@@ -62,7 +62,7 @@ class RowChecker:
                 path (default "assembly").
             third_col (str): The name of the column that contains the first (or only)
                 FASTQ file path (default "fastq_1").
-            forth_col (str): The name of the column that contains the second (if any)
+            fourth_col (str): The name of the column that contains the second (if any)
                 FASTQ file path (default "fastq_2").
             single_col (str): The name of the new column that will be inserted and
                 records whether the sample contains single- or paired-end sequencing
