@@ -95,7 +95,7 @@ workflow PREPARE_INPUT {
     // Check inputs
     Channel
         .fromPath( ch_input )
-        .splitCsv ( header:true, sep:',' )
+        .splitCsv ( header:true, sep:',', quote: '"' )
         .map{ it -> create_sample_channel( it ) }
         .set { ch_manifest }
 
