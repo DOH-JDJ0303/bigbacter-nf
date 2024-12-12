@@ -65,115 +65,8 @@ include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoft
     RUN MAIN WORKFLOW
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-
-// get list of isolates in each cluster for a taxa
-def db_taxa_clusters ( taxa , timestamp ) {
-    // determine path to taxa database
-    clusters_path = file(params.db).resolve(taxa).resolve("clusters")
-    // get list of isolates associated with each cluster
-    taxadir = file(params.outdir).resolve(timestamp.toString()).resolve(taxa)
-    taxadir.mkdirs()
-    db_info_file = taxadir.resolve(taxa+"-db-info.txt")
-    db_info_file.delete()
-    clusters = clusters_path.list()
-    for ( cluster in clusters ) {
-        // list isolates
-        isolates = clusters_path.resolve(cluster).resolve("snippy").list()
-        // create list
-        for ( iso in isolates ) {
-            row = taxa+"\t"+cluster+"\t"+iso.replace(".tar.gz", "")+"\n"
-            db_info_file.append(row) 
-        }
-    }
-    return db_info_file
-}
-
-// Function for gathering BigBacter database info
-def db_info ( db_path, outdir_path, timestamp, wait_file ) {
-    // Build output file path
-    ts_str = timestamp.toString()
-    db_info = file(outdir_path).resolve(ts_str).resolve(ts_str+"-db-info.csv")
-    if (db_info.exists()) { db_info.delete() }
-    // Add header
-    db_info.append("Taxon,Cluster,File_Type,File_Name,Size,File_Date,File_Path\n")
-    // Create empty variables for total counts
-    pp_size       = 0
-    ref_size      = 0
-    snippy_size   = 0
-    assembly_size = 0
-    // Iterate through taxa
-    for ( taxon in file(db_path).list() ) {
-        taxon_path = file(db_path).resolve(taxon)
-        // Iterate through PopPUNK files
-        for ( pp in file(taxon_path).resolve("pp_db").list() ) {
-            // Build file path
-            pp_file = file(taxon_path).resolve("pp_db").resolve(pp)
-            // Total size
-            pp_file_size = pp_file.size()
-            pp_size = pp_size + pp_file_size
-            // File date
-            pp_date = new Date(pp_file.lastModified())
-            // Create row & append
-            pp_row = taxon+",NA,PopPUNK_Database,"+pp+","+pp_file_size+","+pp_date+","+pp_file.toUriString()+"\n" 
-            ! pp_row ?: db_info.append(pp_row)
-        }
-        // Iterate through cluster files
-        for ( cluster in file(taxon_path).resolve("clusters").list() ) {
-            cluster_path = file(taxon_path).resolve("clusters").resolve(cluster)
-            // Reference files
-            for ( ref in file(cluster_path).resolve("ref").list() ) {
-                // Build file path
-                ref_file = file(cluster_path).resolve("ref").resolve(ref)
-                // Total size
-                ref_file_size = ref_file.size()
-                ref_size = ref_size + ref_file_size
-                // File date
-                ref_date = new Date(ref_file.lastModified())
-                // Create row & append
-                ref_row = taxon+","+cluster+",SNP_Reference,"+ref+","+ref_file_size+","+ref_date+","+ref_file.toUriString()+"\n"
-                ! ref_row ?: db_info.append(ref_row)
-            }
-            // Snippy files
-            for ( snippy in file(cluster_path).resolve("snippy").list() ) { 
-                // Build file path
-                snippy_file = file(cluster_path).resolve("snippy").resolve(snippy)
-                // Total size
-                snippy_file_size = snippy_file.size()
-                snippy_size = snippy_size + snippy_file_size
-                // File date
-                snippy_date = new Date(snippy_file.lastModified())
-                // Create row & append
-                snippy_row = taxon+","+cluster+",SNP_Files,"+snippy+","+snippy_file_size+","+snippy_date+","+snippy_file.toUriString()+"\n"
-                ! snippy_row ?: db_info.append(snippy_row)
-            }
-            // Assembly files
-            for ( assembly in file(cluster_path).resolve("assembly").list() ) { 
-                // Build file path
-                assembly_file = file(cluster_path).resolve("assembly").resolve(assembly)
-                // Total size
-                assembly_file_size = assembly_file.size()
-                assembly_size = assembly_size + assembly_file_size
-                // File date
-                assembly_date = new Date(assembly_file.lastModified())
-                // Create row & append
-                assembly_row = taxon+","+cluster+",Assembly_File,"+assembly+","+assembly_file_size+","+assembly_date+","+assembly_file.toUriString()+"\n"
-                ! assembly_row ?: db_info.append(assembly_row)
-            }
-        }
-    }
-    // Get total and convert to GB
-    total_size = pp_size+ref_size+snippy_size+assembly_size
-    total_size = MemoryUnit.of(total_size).toGiga()
-    pp_size = MemoryUnit.of(pp_size).toMega()
-    ref_size = MemoryUnit.of(ref_size).toMega()
-    snippy_size = MemoryUnit.of(snippy_size).toMega()
-    assembly_size = MemoryUnit.of(assembly_size).toMega()
-    // Print to Screen
-    println "\n===========================\nBigBacter Database Summary:\n===========================\nDatabase Path: "+db_path+"\nPopPUNK Files: "+pp_size+"MB\nReference Files: "+ref_size+"MB\nSNP Files: "+snippy_size+"MB\nAssembly Files: "+assembly_size+"MB\nTotal: "+total_size+"GB\n"
-    // Return file
-    return db_info
-}
-
+// File to save timestamp
+timestamp_file = file(workflow.workDir).resolve("${workflow.sessionId}_bb-timestamp")
 // Info required for completion email and summary
 def multiqc_report = []
 
@@ -191,7 +84,9 @@ workflow BIGBACTER {
         .set { ch_timestamp }
 
     // provide custom run ID that replaces the timestamp - set up this way to avoid being a value channel 
-    params.run_id ? timestamp.map{ timestamp -> params.run_id }.set{ ch_timestamp } : ch_timestamp
+    params.run_id ? ch_timestamp.map{ timestamp -> params.run_id }.set{ ch_timestamp } : ch_timestamp
+    // save timestamp to file for reference outside the workflow - is there a better way?
+    ch_timestamp.subscribe{ it -> file(timestamp_file).text = it }
 
     /*
     =============================================================================================================================
@@ -332,9 +227,6 @@ workflow BIGBACTER {
         PUSH_FILES.out.push_files.last().set{ch_wait} // update the wait channel
     }
 
-    // Collect database info - optional
-    if (params.db_info){ ch_timestamp.combine(ch_wait).map{ ch_timestamp, wait_file -> db_info(params.db, params.outdir, ch_timestamp, wait_file) } }
-
     /*
     =============================================================================================================================
         NEXTFLOW DEFAULTS
@@ -367,6 +259,7 @@ workflow BIGBACTER {
         ch_timestamp
     )
     multiqc_report = MULTIQC.out.report.toList()
+
 }
 
 /*
@@ -374,16 +267,107 @@ workflow BIGBACTER {
     COMPLETION EMAIL AND SUMMARY
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-
 workflow.onComplete {
     // Reminder to push files
-    if ( ! params.push & !(workflow.commandLine =~ "PREPARE_DB") ) { println "\033[1;33m\n------------------------------------------------------\n\nNext steps:\n1. Check your results\n2. Run the command below to push this run to your database\n\n\033[0;37m> "+workflow.commandLine.replaceAll(/ -resume/, '')+" --push true -resume\n\n------------------------------------------------------\n\033[0m" }
+    if ( ! params.push & !(workflow.commandLine =~ "PREPARE_DB") ) { 
+        msg = """
+              \033[1;33m------------------------------------------------------
+              
+              Next steps:
+              1. Check your results
+              2. Run the command below to push this run to your database
+              
+              \033[0;37m> "${workflow.commandLine.replaceAll(/ -resume/, '')} --push true -resume
+              
+              \033[1;33m------------------------------------------------------\033[0m
+              """.stripIndent()
+        println msg }
+    // Get database info
+    if ( params.db_info ) { dbInfo( params.db, params.outdir, timestamp_file.text ) }
+    else { println "\033[1;36mTip: Run BigBacter with\033[0m `--db_info true` \033[1;36mto get a summary of your BigBacter database!\033[0m\n" }
+    // nf-core email
     if (params.email || params.email_on_fail) {
         NfcoreTemplate.email(workflow, params, summary_params, projectDir, log)
     }
     NfcoreTemplate.summary(workflow, params, log)
     if (params.hook_url) {
         NfcoreTemplate.IM_notification(workflow, params, summary_params, projectDir, log)
+    }
+}
+
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    FUNCTIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+// Function for gathering BigBacter database info
+def dbInfo ( db_path, outdir_path, timestamp ) {
+    // Print message
+    msg = """
+          Gathering BigBacter database info. This can take a while if your database is large and/or in the cloud. \033[0;31mPress 'control + c' to skip.\033[0m
+          You can skip this in the future by running BigBacter with '--db_info false'
+          """.stripIndent()
+    println msg
+    // Define output summary file
+    def db_info = file(outdir_path).resolve(timestamp.toString()).resolve(timestamp.toString()+"-db-info.csv")
+    // Gather File Info
+    //// Taxa
+    def taxon    = file(db_path).exists() ? file(db_path).list().collect { [ taxon: it, taxon_path: file(db_path).resolve(it).exists() ? file(db_path).resolve(it) : null ] }.findAll{ it } : null
+    //// Clusters
+    def clusters = taxon ? taxon.collectMany { 
+        it -> if( it.taxon_path.resolve('clusters').exists() ) { 
+            it.taxon_path.resolve('clusters').list().collect { 
+                cluster -> [ taxon: it.taxon, 
+                             cluster: cluster, 
+                             cluster_path: it.taxon_path.resolve('clusters').resolve(cluster) ] 
+                }
+            } else { [] }
+        }.findAll{ it ? ( it.cluster_path ? true : false ) : false } : []
+    //// PopPUNK Databases
+    def pp_dbs  = taxon ? taxon.collectMany { 
+        it -> if( it.taxon_path.resolve('pp_db').exists() ) {
+            it.taxon_path.resolve('pp_db').list().collect { 
+                pp_db ->  [ taxon: it.taxon, cluster: null, fileType: "PopPUNK_Database", fileName: pp_db, filePath: it.taxon_path.resolve('pp_db').resolve(pp_db).exists() ? it.taxon_path.resolve('pp_db').resolve(pp_db) : null ] 
+                }
+            } else { [] }
+        } : []
+    //// Snippy Files
+    def snippy  = clusters ? clusters.collectMany { 
+        it -> if( it.cluster_path.resolve('snippy').exists() ) {
+            it.cluster_path.resolve('snippy').list().collect { 
+                snippy_file -> [ taxon: it.taxon, cluster: it.cluster, fileType: "SNP_Files", fileName: snippy_file, filePath: it.cluster_path.resolve('snippy').resolve(snippy_file).exists() ? it.cluster_path.resolve('snippy').resolve(snippy_file) : null ] 
+                }
+            } else { [] } 
+        } : []
+    //// SNP References
+    def refs  = clusters ? clusters.collectMany { 
+        it -> if( it.cluster_path.resolve('ref').exists() ) {
+            it.cluster_path.resolve('ref').list().collect { 
+                ref -> [ taxon: it.taxon, cluster: it.cluster, fileType: "SNP_Reference", fileName: ref, filePath: it.cluster_path.resolve('ref').resolve(ref).exists() ? it.cluster_path.resolve('ref').resolve(ref) : null ] 
+                }
+            } else { [] } 
+        } : []
+    //// Assembly Files
+    def assemblies  = clusters ? clusters.collectMany { 
+        it -> if( it.cluster_path.resolve('assembly').exists() ) {
+            it.cluster_path.resolve('assembly').list().collect { 
+                assembly -> [ taxon: it.taxon, cluster: it.cluster, fileType: "Assembly_File", fileName: assembly, filePath: it.cluster_path.resolve('assembly').resolve(assembly).exists() ? it.cluster_path.resolve('assembly').resolve(assembly) : null ] 
+                }
+            } else { [] } 
+        } : []
+    //// Combine it all together
+    def all_files = ( pp_dbs + snippy + refs + assemblies ).findAll { it }.collect { it + [ fileSize: it.filePath.size(), fileDate: new Date(it.filePath.lastModified()) ] }
+
+    // Report Summary (if anything was collected)
+    if( all_files ){
+        // Save to file
+        db_info.text = ( [ all_files[0].keySet().join(',') ] + all_files.collect{ it.values().join(',') } ).join('\n') + '\n'
+
+        // Print to stdout
+        def db_summary = all_files.groupBy{ it.fileType }.collectEntries{ group, list -> [ group, list.sum{ it.fileSize } ] }
+        db_summary = ( db_summary + [ Total: db_summary.values().sum() ] ).entrySet().collect{ it -> "${it.key}: ${ it.value >= 1e9 ? MemoryUnit.of(it.value).toGiga() : MemoryUnit.of(it.value).toMega() } ${ it.value >= 1e9 ? 'GB' : 'MB' }" }
+        ( [ '=' * 27, 'BigBacter Database Summary:', '=' * 27 ] + db_summary ).each{ println it }
     }
 }
 

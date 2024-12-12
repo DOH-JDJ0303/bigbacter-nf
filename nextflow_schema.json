@@ -202,7 +202,7 @@
             "properties": {
                 "db_info": {
                     "type": "boolean",
-                    "default": true,
+                    "default": false,
                     "description": "Option to gather database information. A file will be saved in the run directory and a summary will be printed to the screen.",
                     "fa_icon": "fas fa-info-circle"
                 },
